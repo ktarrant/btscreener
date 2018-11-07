@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Methods for loading, caching, and saving IEX finance data
-
+"""Technical Analysis
+Using backtrader we can apply indicators to price data. These indicators
+provide information and signals that can help the user make decisions.
 """
 # -----------------------------------------------------------------------------
 # Copyright (c) 2018, Kevin Tarrant (@ktarrant)
@@ -16,11 +17,9 @@
 # -----------------------------------------------------------------------------
 '''
 OPTIONS ------------------------------------------------------------------
--v, --verbose : use verbose logging
--l, --live : use live updating
+A description of each option that can be passed to this script
 ARGUMENTS -------------------------------------------------------------
-symbol : stock ticker to look up
-interval : for example '5m' or 'D'
+A description of each argument that can or must be passed to this script
 '''
 
 # -----------------------------------------------------------------------------
@@ -29,24 +28,23 @@ interval : for example '5m' or 'D'
 
 # stdlib imports -------------------------------------------------------
 import logging
-import datetime
 
 # Third-party imports -----------------------------------------------
-import pandas as pd
 import backtrader as bt
-import requests
+import pandas as pd
 
 # Our own imports ---------------------------------------------------
+from iex import load_historical
 
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
-CACHE_FILE_FORMAT = "{today}_{symbol}_{range}.csv"
+
 
 # -----------------------------------------------------------------------------
 # CONSTANTS
 # -----------------------------------------------------------------------------
-URL_CHART = "https://api.iextrading.com/1.0/stock/{symbol}/chart/{range}"
+
 
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
@@ -63,41 +61,30 @@ logger = logging.getLogger(__name__)
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# CACHE UTILS       -----------------------------------------
-def load_cached_df(fn, url, force=False):
+# SETUP HELPERS     -----------------------------------------
+def configure_data(cerebro, symbol="aapl", range="1m"):
     '''
-    Loads a DataFrame from a URL. If a cached DataFrame is already present
-    locally, returns that instead.
-    :param fn: str - filename of expected cached file
-    :param url: str - url of the source data
-    :param force: bool - if True, will skip checking for cache file
-    :return: pd.DataFrame - cached or loaded DataFrame
+    Runs strategy against historical data
+    :param cerebro: bt.Cerebro - cerebro object to configure
+    :param symbol: str - symbol of historical data to configure
+    :param range: str - range of historical data to configure
+    :return: type - description of the value returned
     '''
-    if not force:
-        try:
-            df = pd.read_csv(fn)
-            return df
-        except IOError:
-            logger.debug("Cache file '{}' not found".format(fn))
+    df = load_historical(symbol, range=range)
+    df["datetime"] = pd.to_datetime(df["date"])
+    df = df.set_index("datetime")
+    numeric_cols = [c for c in bt.feeds.PandasDirectData.datafields if c in df.columns]
+    df = df[numeric_cols].apply(pd.to_numeric)
+    data = bt.feeds.PandasDirectData(dataname=df, openinterest=-1)
+    cerebro.adddata(data)
+    print(df)
+    return cerebro
 
-    logger.info("Loading: '{}'".format(url))
-    df = pd.DataFrame(requests.get(url).json())
-    df.to_csv(fn)
-    return df
 
-# WEB LOADERS       -----------------------------------------
-def load_historical(symbol, range="1m", force=False):
-    '''
-    Loads historical data from IEX Finance
-    :param symbol: str - stock ticker to look up
-    :param range: str - lookback period
-    :param force: bool - if True, will skip checking for cache file
-    :return: pd.DataFrame - DataFrame suitable for use with backtrader
-    '''
-    url = URL_CHART.format(symbol=symbol, range=range)
-    today = datetime.date.today()
-    fn = CACHE_FILE_FORMAT.format(today=today, symbol=symbol, range=range)
-    return load_cached_df(fn, url, force)
+# FUNCTION CATEGORY 2 -----------------------------------------
+
+
+# FUNCTION CATEGORY n -----------------------------------------
 
 
 # -----------------------------------------------------------------------------
@@ -107,13 +94,10 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description="""
-    Loads historical data locally or from IEX if necessary and caches it.
+    Complete description of the runtime of the script, what it does and how it
+    should be used
     """)
-    parser.add_argument("symbol", type=str, help="stock ticker to look up")
-    parser.add_argument("-r", "--range", type=str, default="1m",
-                        help="lookback period")
-    parser.add_argument("-f", "--force", action="store_true",
-                        help="skip cache check step")
+    parser.add_argument("--symbol", type=str, default="aapl", help="stock ticker to look up")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
 
@@ -123,5 +107,20 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    df = load_historical(args.symbol, args.range, args.force)
-    print(df)
+    # Set up Cerebro for a backtest
+    cerebro = bt.Cerebro()
+
+    # Set up the data source
+    cerebro = configure_data(cerebro)
+
+    # Set our desired cash start
+    cerebro.broker.setcash(100000.0)
+
+    # Print out the starting conditions
+    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+    # Run over everything
+    result = cerebro.run()
+
+    # Print out the final result
+    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())

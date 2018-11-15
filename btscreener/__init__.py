@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""A one-line description or name.
-A longer description that spans multiple lines.  Explain the purpose of the
-file and provide a short list of the key classes/functions it contains.  This
-is the docstring shown when some does 'import foo;foo?' in IPython, so it
-should be reasonably useful and informative.
+"""Module for technical and fundamental screening of equities and derivatives
 """
 # -----------------------------------------------------------------------------
 # Copyright (c) 2018, Kevin Tarrant (@ktarrant)

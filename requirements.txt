@@ -1,3 +1,5 @@
+atomicwrites==1.2.1
+attrs==18.2.0
 backtrader==1.9.67.122
 certifi==2018.10.15
 chardet==3.0.4
@@ -5,9 +7,13 @@ cycler==0.10.0
 idna==2.7
 kiwisolver==1.0.1
 matplotlib==3.0.2
+more-itertools==4.3.0
 numpy==1.15.4
 pandas==0.23.4
+pluggy==0.8.0
+py==1.7.0
 pyparsing==2.3.0
+pytest==4.0.0
 python-dateutil==2.7.5
 pytz==2018.7
 requests==2.20.1

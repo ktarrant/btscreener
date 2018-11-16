@@ -14,14 +14,6 @@
 # http://ipython.org/ipython-doc/rel-0.13.2/development/coding_guide.html
 # https://www.python.org/dev/peps/pep-0008/
 # -----------------------------------------------------------------------------
-'''
-OPTIONS ------------------------------------------------------------------
--v, --verbose : use verbose logging
--l, --live : use live updating
-ARGUMENTS -------------------------------------------------------------
-symbol : stock ticker to look up
-interval : for example '5m' or 'D'
-'''
 
 # -----------------------------------------------------------------------------
 # Imports

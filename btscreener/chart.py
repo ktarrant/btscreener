@@ -176,7 +176,7 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
     df["datetime"] = pd.to_datetime(df["date"])
     df = df.set_index("datetime")
     numeric_cols = [c for c in bt.feeds.PandasDirectData.datafields if c in df.columns]
-    df = df[numeric_cols].convert_objects(convert_numeric=True)
+    df = df[numeric_cols].apply(pd.to_numeric)
     data = bt.feeds.PandasDirectData(dataname=df, openinterest=-1)
     cerebro.adddata(data)
     cerebro.addstrategy(SupertrendAD)

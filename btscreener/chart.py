@@ -22,6 +22,7 @@ provide information and signals that can help the user make decisions.
 
 # stdlib imports -------------------------------------------------------
 import logging
+from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
 import backtrader as bt
@@ -230,7 +231,22 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
 
 
 # FUNCTION CATEGORY 2 -----------------------------------------
+def extract_indicators(strategy, data=None):
+    """
+    Extracts the latest values from the indicators in the provided Strategy
 
+    Args:
+        strategy (bt.Strategy): Strategy with indicators
+        data (OrderedDict): any data to start with
+
+    Returns:
+        OrderedDict: extracted values
+    """
+    rv = data if data else OrderedDict()
+    rv["trend"] = strategy.stad.st.lines.trend[0]
+    rv["support"] = strategy.stad.lines.support[0]
+    rv["resistance"] = strategy.stad.lines.resistance[0]
+    return rv
 
 # FUNCTION CATEGORY n -----------------------------------------
 
@@ -245,7 +261,10 @@ if __name__ == '__main__':
     Complete description of the runtime of the script, what it does and how it
     should be used
     """)
-    parser.add_argument("--symbol", type=str, default="aapl", help="stock ticker to look up")
+    parser.add_argument("--symbol", type=str, default="aapl",
+                        help="stock ticker to look up")
+    parser.add_argument("-p", "--plot", action="store_true",
+                        help="show a matplotlib plot")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
 
@@ -261,16 +280,14 @@ if __name__ == '__main__':
     # Set up the data source
     cerebro = configure_data(cerebro)
 
-    # Set our desired cash start
-    cerebro.broker.setcash(100000.0)
-
-    # Print out the starting conditions
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
-
     # Run over everything
     result = cerebro.run()
 
-    # Print out the final result
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    data = OrderedDict()
+    data["symbol"] = args.symbol
+    stats = extract_indicators(result[0], data=data)
+    for key in stats:
+        print("{:32}:{}".format(key, stats[key]))
 
-    cerebro.plot(style='candle')
+    if args.plot:
+        cerebro.plot(style='candle')

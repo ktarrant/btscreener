@@ -48,7 +48,6 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 # FIXTURES
 # -----------------------------------------------------------------------------
-
 @pytest.fixture(scope="function")
 def strategy_mock(request):
     return mock.MagicMock()

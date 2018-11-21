@@ -29,7 +29,7 @@ import pandas as pd
 import numpy as np
 
 # Our own imports ---------------------------------------------------
-from iex import load_historical
+from .iex import load_historical
 
 # -----------------------------------------------------------------------------
 # GLOBALS

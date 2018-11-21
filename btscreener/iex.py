@@ -25,7 +25,6 @@ import datetime
 
 # Third-party imports -----------------------------------------------
 import pandas as pd
-import backtrader as bt
 import requests
 
 # Our own imports ---------------------------------------------------

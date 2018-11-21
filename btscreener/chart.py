@@ -29,7 +29,7 @@ import pandas as pd
 import numpy as np
 
 # Our own imports ---------------------------------------------------
-from .iex import load_historical
+from btscreener.iex import load_historical
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -147,12 +147,60 @@ class WickReversalSignal(bt.Indicator):
         self.lines.sell = bt.If(bt.And(wick_sell, close_sell), self.data.high, np.NaN)
 
 
-class SupertrendAD(bt.Strategy):
+class SupertrendAD(bt.Indicator):
+
+    lines = (
+        "distribution",
+        "accumulation",
+        "resistance",
+        "support",
+    )
+
+
+    plotinfo = dict(plot=True, subplot=False)
+
+
+    plotlines = dict(
+        distribution=dict(marker='o', markersize=8.0, color='red', fillstyle='top', ls=""),
+        accumulation=dict(marker='o', markersize=8.0, color='green', fillstyle='bottom', ls=""),
+    )
 
     def __init__(self):
         self.st = Supertrend()
         self.ad = WickReversalSignal()
-        
+        self.lines.distribution = bt.If(self.st.lines.trend == 1.0, self.ad.lines.sell, np.NaN)
+        self.lines.accumulation = bt.If(self.st.lines.trend == -1.0, self.ad.lines.buy, np.NaN)
+
+    def next(self):
+        if self.st.lines.trend[0] == 1.0:
+            self.lines.support[0] = self.st.lines.stop[0]
+
+            if not pd.isnull(self.lines.distribution[0]):
+                if pd.isnull(self.lines.resistance[-1]):
+                    self.lines.resistance[0] = self.data.high[0]
+                else:
+                    self.lines.resistance[0] = max(self.data.high[0], self.lines.resistance[-1])
+
+            else:
+                self.lines.resistance[0] = self.lines.resistance[-1]
+
+        elif self.st.lines.trend[0] == -1.0:
+            self.lines.resistance[0] = self.st.lines.stop[0]
+
+            if not pd.isnull(self.lines.accumulation[0]):
+                if pd.isnull(self.lines.support[-1]):
+                    self.lines.support[0] = self.data.low[0]
+                else:
+                    self.lines.support[0] = min(self.data.low[0], self.lines.support[-1])
+
+            else:
+                self.lines.support[0] = self.lines.support[-1]
+
+class SupertrendADStrategy(bt.Strategy):
+
+    def __init__(self):
+        self.stad = SupertrendAD()
+
 # -----------------------------------------------------------------------------
 # FUNCTIONS
 # -----------------------------------------------------------------------------
@@ -177,7 +225,7 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
     df = df[numeric_cols].apply(pd.to_numeric)
     data = bt.feeds.PandasDirectData(dataname=df, openinterest=-1)
     cerebro.adddata(data)
-    cerebro.addstrategy(SupertrendAD)
+    cerebro.addstrategy(SupertrendADStrategy)
     return cerebro
 
 

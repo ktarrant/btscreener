@@ -15,12 +15,6 @@ provide information and signals that can help the user make decisions.
 # http://ipython.org/ipython-doc/rel-0.13.2/development/coding_guide.html
 # https://www.python.org/dev/peps/pep-0008/
 # -----------------------------------------------------------------------------
-'''
-OPTIONS ------------------------------------------------------------------
-A description of each option that can be passed to this script
-ARGUMENTS -------------------------------------------------------------
-A description of each argument that can or must be passed to this script
-'''
 
 # -----------------------------------------------------------------------------
 # Imports

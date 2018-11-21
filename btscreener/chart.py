@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Technical Analysis
-Using backtrader we can apply indicators to price data. These indicators
-provide information and signals that can help the user make decisions.
-"""
 # -----------------------------------------------------------------------------
 # Copyright (c) 2018, Kevin Tarrant (@ktarrant)
 #
@@ -15,6 +11,10 @@ provide information and signals that can help the user make decisions.
 # http://ipython.org/ipython-doc/rel-0.13.2/development/coding_guide.html
 # https://www.python.org/dev/peps/pep-0008/
 # -----------------------------------------------------------------------------
+"""Technical Analysis
+Using backtrader we can apply indicators to price data. These indicators
+provide information and signals that can help the user make decisions.
+"""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -161,10 +161,14 @@ class SupertrendAD(bt.Strategy):
 def configure_data(cerebro, symbol="aapl", range="6m"):
     '''
     Runs strategy against historical data
-    :param cerebro: bt.Cerebro - cerebro object to configure
-    :param symbol: str - symbol of historical data to configure
-    :param range: str - range of historical data to configure
-    :return: type - description of the value returned
+
+    Args:
+        cerebro (bt.Cerebro): cerebro object to configure
+        symbol (str): symbol of historical data to configure
+        range (str): range of historical data to configure
+
+    Returns:
+        bt.Cerebro: description of the value returned
     '''
     df = load_historical(symbol, range=range)
     df["datetime"] = pd.to_datetime(df["date"])

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Methods for loading, caching, and saving IEX finance data
-
-"""
 # -----------------------------------------------------------------------------
 # Copyright (c) 2018, Kevin Tarrant (@ktarrant)
 #
@@ -14,6 +11,8 @@
 # http://ipython.org/ipython-doc/rel-0.13.2/development/coding_guide.html
 # https://www.python.org/dev/peps/pep-0008/
 # -----------------------------------------------------------------------------
+"""Methods for loading, caching, and saving IEX finance data
+"""
 
 # -----------------------------------------------------------------------------
 # Imports
@@ -59,10 +58,14 @@ def load_cached_df(fn, url, force=False):
     '''
     Loads a DataFrame from a URL. If a cached DataFrame is already present
     locally, returns that instead.
-    :param fn: str - filename of expected cached file
-    :param url: str - url of the source data
-    :param force: bool - if True, will skip checking for cache file
-    :return: pd.DataFrame - cached or loaded DataFrame
+
+    Args:
+        fn (str): filename of expected cached file
+        url (str): url of the source data
+        force (bool): if True, will skip checking for cache file
+
+    Returns:
+        pd.DataFrame: cached or loaded DataFrame
     '''
     if not force:
         try:
@@ -80,10 +83,14 @@ def load_cached_df(fn, url, force=False):
 def load_historical(symbol, range="1m", force=False):
     '''
     Loads historical data from IEX Finance
-    :param symbol: str - stock ticker to look up
-    :param range: str - lookback period
-    :param force: bool - if True, will skip checking for cache file
-    :return: pd.DataFrame - DataFrame suitable for use with backtrader
+
+    Args:
+        symbol (str): stock ticker to look up
+        range (str): lookback period
+        force (bool): if True, will skip checking for cache file
+
+    Returns:
+        pd.DataFrame: cached or loaded DataFrame
     '''
     url = URL_CHART.format(symbol=symbol, range=range)
     today = datetime.date.today()

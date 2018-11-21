@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Methods for loading, caching, and saving IEX finance data
-
-"""
 # -----------------------------------------------------------------------------
 # Copyright (c) 2018, Kevin Tarrant (@ktarrant)
 #
@@ -14,6 +11,9 @@
 # http://ipython.org/ipython-doc/rel-0.13.2/development/coding_guide.html
 # https://www.python.org/dev/peps/pep-0008/
 # -----------------------------------------------------------------------------
+"""Methods for loading, caching, and saving IEX finance data
+
+"""
 
 # -----------------------------------------------------------------------------
 # Imports

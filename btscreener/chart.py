@@ -22,6 +22,7 @@ provide information and signals that can help the user make decisions.
 
 # stdlib imports -------------------------------------------------------
 import logging
+import datetime
 from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
@@ -246,6 +247,10 @@ def extract_indicators(strategy, data=None):
     rv["trend"] = strategy.stad.st.lines.trend[0]
     rv["support"] = strategy.stad.lines.support[0]
     rv["resistance"] = strategy.stad.lines.resistance[0]
+    rv["prev_close"] = strategy.data.close[-1]
+    rv["close"] = strategy.data.close[0]
+    rv["open"] = strategy.data.open[0]
+    rv["lastbar"] = strategy.data.datetime.date()
     return rv
 
 # FUNCTION CATEGORY n -----------------------------------------
@@ -278,7 +283,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     # Set up the data source
-    cerebro = configure_data(cerebro)
+    cerebro = configure_data(cerebro, symbol=args.symbol)
 
     # Run over everything
     result = cerebro.run()

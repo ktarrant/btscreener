@@ -218,7 +218,7 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
         range (str): range of historical data to configure
 
     Returns:
-        bt.Cerebro: description of the value returned
+        bt.Cerebro: updated cerebro object
     '''
     df = load_historical(symbol, range=range)
     df["datetime"] = pd.to_datetime(df["date"])
@@ -227,7 +227,6 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
     df = df[numeric_cols].apply(pd.to_numeric)
     data = bt.feeds.PandasDirectData(dataname=df, openinterest=-1)
     cerebro.adddata(data)
-    cerebro.addstrategy(SupertrendADStrategy)
     return cerebro
 
 
@@ -284,6 +283,9 @@ if __name__ == '__main__':
 
     # Set up the data source
     cerebro = configure_data(cerebro, symbol=args.symbol)
+
+    # Add an indicator that we can extract afterwards
+    cerebro.addstrategy(SupertrendADStrategy)
 
     # Run over everything
     result = cerebro.run()

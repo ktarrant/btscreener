@@ -26,6 +26,7 @@ from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
 import backtrader as bt
+import pandas as pd
 
 # Our own imports ---------------------------------------------------
 from btscreener.chart import (
@@ -59,24 +60,26 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 
 # DATA CONFIGURATION -----------------------------------------
-def configure_datas_dji(cerebro, range="3m"):
+def configure_datas(cerebro, index, range="3m"):
     """
     Configures a cerebro object with a bunch of datas objects
     The format for a parameter is::
 
     Args:
         cerebro (bt.Cerebro): cerebro object to configure
+        index (list-like): Index of tickers to use, a data object will be
+            created for each ticker.
         range (str): range of historical data to configure
 
     Returns:
         bt.Cerebro: updated cerebro object
     """
-    for symbol in dji_components:
+    for symbol in index:
         cerebro = configure_data(cerebro, symbol, range)
     return cerebro
 
 # FUNCTION CATEGORY 2 -----------------------------------------
-def collect_indicators(results):
+def collect_indicators(result, index):
     """
     Extracts the indicators from each results section and yields them as a
     row an array-like
@@ -84,15 +87,14 @@ def collect_indicators(results):
     Args:
         results (list(bt.Strategy)): List of Strategy instances returned by the
             backtrader runs on each data source
+        index (list-like): Index of tickers to use, mapping to the datas
+            objects in the Strategy
 
     Yields:
         OrderedDict: A dict-like row for an array-like, with the first key
             being "symbol".
     """
-    data = OrderedDict()
-    data["symbol"] = args.symbol
-    for result in results:
-        stats = extract_indicators(result, data=data)
+    return pd.DataFrame(extract_indicators(result), index=index)
 
 # FUNCTION CATEGORY n -----------------------------------------
 
@@ -102,6 +104,9 @@ def collect_indicators(results):
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     import argparse
+    import datetime
+
+    DEFAULT_FILE_FORMAT = "{date}_SuperAD_scan.csv"
 
     parser = argparse.ArgumentParser(description="""
     Complete description of the runtime of the script, what it does and how it
@@ -109,6 +114,9 @@ if __name__ == '__main__':
     """)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
+    parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
+                        help="output file format. default: {}".format(
+                            DEFAULT_FILE_FORMAT))
 
     args = parser.parse_args()
 
@@ -120,7 +128,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     # Set up the data sources for the DJI components
-    cerebro = configure_datas_dji(cerebro)
+    cerebro = configure_datas(cerebro, dji_components)
 
     # Add an indicator that we can extract afterwards
     cerebro.addstrategy(SupertrendADStrategy)
@@ -128,4 +136,13 @@ if __name__ == '__main__':
     # Run over everything
     results = cerebro.run()
 
-    print(results)
+    # Extract the results
+    table = collect_indicators(results[0], dji_components)
+
+    # Save to file
+    fn = args.out.format(date=datetime.date.today())
+    print("Saving to: {}".format(fn))
+    table.to_csv(fn)
+
+    # Print
+    print(table)

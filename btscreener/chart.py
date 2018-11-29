@@ -22,7 +22,7 @@ provide information and signals that can help the user make decisions.
 
 # stdlib imports -------------------------------------------------------
 import logging
-import datetime
+from copy import deepcopy
 from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
@@ -201,7 +201,7 @@ class SupertrendAD(bt.Indicator):
 class SupertrendADStrategy(bt.Strategy):
 
     def __init__(self):
-        self.stad = SupertrendAD()
+        self.stads = {data: SupertrendAD(data) for data in self.datas}
 
 # -----------------------------------------------------------------------------
 # FUNCTIONS
@@ -231,26 +231,26 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
 
 
 # FUNCTION CATEGORY 2 -----------------------------------------
-def extract_indicators(strategy, data=None):
+def extract_indicators(strategy):
     """
     Extracts the latest values from the indicators in the provided Strategy
 
     Args:
         strategy (bt.Strategy): Strategy with indicators
-        data (OrderedDict): any data to start with
 
     Returns:
         OrderedDict: extracted values
     """
-    rv = data if data else OrderedDict()
-    rv["trend"] = strategy.stad.st.lines.trend[0]
-    rv["support"] = strategy.stad.lines.support[0]
-    rv["resistance"] = strategy.stad.lines.resistance[0]
-    rv["prev_close"] = strategy.data.close[-1]
-    rv["close"] = strategy.data.close[0]
-    rv["open"] = strategy.data.open[0]
-    rv["lastbar"] = strategy.data.datetime.date()
-    return rv
+    for data in strategy.datas:
+        rv = OrderedDict()
+        rv["trend"] = strategy.stads[data].st.lines.trend[0]
+        rv["support"] = strategy.stads[data].lines.support[0]
+        rv["resistance"] = strategy.stads[data].lines.resistance[0]
+        rv["prev_close"] = data.close[-1]
+        rv["close"] = data.close[0]
+        rv["open"] = data.open[0]
+        rv["lastbar"] = data.datetime.date()
+        yield rv
 
 # FUNCTION CATEGORY n -----------------------------------------
 
@@ -290,9 +290,8 @@ if __name__ == '__main__':
     # Run over everything
     result = cerebro.run()
 
-    data = OrderedDict()
-    data["symbol"] = args.symbol
-    stats = extract_indicators(result[0], data=data)
+    stats = list(extract_indicators(result[0]))[0]
+    print("{}\n".format(args.symbol) + "-"*8)
     for key in stats:
         print("{:32}:{}".format(key, stats[key]))
 

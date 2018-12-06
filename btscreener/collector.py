@@ -41,6 +41,9 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
+DEFAULT_FILE_FORMAT = "{date}_SuperAD_scan.csv"
+""" str: Default path format for output CSV file when run as a script """
+
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
 # -----------------------------------------------------------------------------
@@ -105,8 +108,6 @@ def collect_indicators(result, index):
 if __name__ == '__main__':
     import argparse
     import datetime
-
-    DEFAULT_FILE_FORMAT = "{date}_SuperAD_scan.csv"
 
     parser = argparse.ArgumentParser(description="""
     Complete description of the runtime of the script, what it does and how it

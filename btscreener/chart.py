@@ -183,6 +183,10 @@ class SupertrendAD(bt.Indicator):
                 else:
                     self.lines.resistance[0] = max(self.data.high[0], self.lines.resistance[-1])
 
+            elif self.st.lines.trend[-1] != 1.0:
+                # we just flipped trends, we don't know resistance yet
+                self.lines.resistance[0] = np.NaN
+
             else:
                 self.lines.resistance[0] = self.lines.resistance[-1]
 
@@ -194,6 +198,10 @@ class SupertrendAD(bt.Indicator):
                     self.lines.support[0] = self.data.low[0]
                 else:
                     self.lines.support[0] = min(self.data.low[0], self.lines.support[-1])
+
+            elif self.st.lines.trend[-1] != -1.0:
+                # we just flipped trends, we don't know resistance yet
+                self.lines.support[0] = np.NaN
 
             else:
                 self.lines.support[0] = self.lines.support[-1]

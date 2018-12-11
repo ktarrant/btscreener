@@ -110,7 +110,7 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    table = pd.DataFrame(generate_stats(dji_components))
+    table = pd.DataFrame(generate_stats(dji_components), index=dji_components)
 
     # Save to file
     fn = args.out.format(date=datetime.date.today())

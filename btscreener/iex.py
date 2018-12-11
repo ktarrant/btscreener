@@ -110,13 +110,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
     Loads historical data locally or from IEX if necessary and caches it.
     """)
-    parser.add_argument("symbol", type=str, help="stock ticker to look up")
-    parser.add_argument("-r", "--range", type=str, default="1m",
-                        help="lookback period")
     parser.add_argument("-f", "--force", action="store_true",
                         help="skip cache check step")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
+    subparsers = parser.add_subparsers()
+    hist_parser = subparsers.add_parser("historical")
+    hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
+    hist_parser.add_argument("-r", "--range", type=str, default="1m",
+                             help="lookback period")
 
     args = parser.parse_args()
 

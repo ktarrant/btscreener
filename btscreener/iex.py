@@ -76,7 +76,10 @@ def load_cached_df(fn, url, force=False):
 
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
-    df.to_csv(fn)
+    try:
+        df.to_csv(fn)
+    except IOError:
+        logger.error("Failed to save/cache to path: {}", fn)
     return df
 
 # WEB LOADERS       -----------------------------------------

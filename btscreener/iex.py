@@ -31,13 +31,17 @@ import requests
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
-CACHE_FILE_FORMAT = "{today}_{symbol}_{range}.csv"
+CACHE_FILE_HISTORICAL_FORMAT = "{today}_{symbol}_{range}.csv"
+CACHE_FILE_CALENDAR_FORMAT = "{today}_{symbol}_calendar.csv"
 
 # -----------------------------------------------------------------------------
 # CONSTANTS
 # -----------------------------------------------------------------------------
 URL_CHART = "https://api.iextrading.com/1.0/stock/{symbol}/chart/{range}"
-
+URL_EARNINGS = "https://api.iextrading.com/1.0/stock/{symbol}/earnings"
+URL_DIVIDENDS = (
+    "https://api.iextrading.com/1.0/stock/{symbol}/dividends/{range}"
+)
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
 # -----------------------------------------------------------------------------
@@ -54,33 +58,6 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 
 # CACHE UTILS       -----------------------------------------
-def load_cached_df(fn, url, force=False):
-    '''
-    Loads a DataFrame from a URL. If a cached DataFrame is already present
-    locally, returns that instead.
-
-    Args:
-        fn (str): filename of expected cached file
-        url (str): url of the source data
-        force (bool): if True, will skip checking for cache file
-
-    Returns:
-        pd.DataFrame: cached or loaded DataFrame
-    '''
-    if not force:
-        try:
-            df = pd.read_csv(fn)
-            return df
-        except IOError:
-            logger.debug("Cache file '{}' not found".format(fn))
-
-    logger.info("Loading: '{}'".format(url))
-    df = pd.DataFrame(requests.get(url).json())
-    try:
-        df.to_csv(fn)
-    except IOError:
-        logger.error("Failed to save/cache to path: {}", fn)
-    return df
 
 # WEB LOADERS       -----------------------------------------
 def load_historical(symbol, range="1m", force=False):
@@ -97,9 +74,85 @@ def load_historical(symbol, range="1m", force=False):
     '''
     url = URL_CHART.format(symbol=symbol, range=range)
     today = datetime.date.today()
-    fn = CACHE_FILE_FORMAT.format(today=today, symbol=symbol, range=range)
-    return load_cached_df(fn, url, force)
+    fn = CACHE_FILE_HISTORICAL_FORMAT.format(
+        today=today, symbol=symbol, range=range)
+    if not force:
+        try:
+            df = pd.read_csv(fn)
+            return df
+        except IOError:
+            logger.debug("Cache file '{}' not found".format(fn))
 
+    logger.info("Loading: '{}'".format(url))
+    df = pd.DataFrame(requests.get(url).json())
+    try:
+        df.to_csv(fn)
+    except IOError:
+        logger.error("Failed to save/cache to path: {}", fn)
+    return df
+
+def load_earnings(symbol):
+    '''
+    Loads earnings data from IEX Finance
+
+    Args:
+        symbol (str): stock ticker to look up
+
+    Returns:
+        pd.DataFrame: loaded DataFrame
+    '''
+    url = URL_EARNINGS.format(symbol=symbol)
+    logger.info("Loading: '{}'".format(url))
+    result = requests.get(url).json()
+    df = pd.DataFrame(result["earnings"])
+    return df.set_index("EPSReportDate")
+
+def load_dividends(symbol, range='1y'):
+    '''
+    Loads dividends data from IEX Finance
+
+    Args:
+        symbol (str): stock ticker to look up
+        range (str): lookback period
+
+    Returns:
+        pd.DataFrame: loaded DataFrame
+    '''
+    url = URL_DIVIDENDS.format(symbol=symbol, range=range)
+    logger.info("Loading: '{}'".format(url))
+    df = pd.DataFrame(requests.get(url).json())
+    return df.set_index("exDate")
+
+def load_calendar(symbol, force=False):
+    '''
+    Loads calendar data from IEX Finance
+
+    Args:
+        symbol (str): stock ticker to look up
+        force (bool): if True, will skip checking for cache file
+
+    Returns:
+        pd.DataFrame: cached or loaded DataFrame
+    '''
+
+    today = datetime.date.today()
+    fn = CACHE_FILE_CALENDAR_FORMAT.format(today=today, symbol=symbol)
+    if not force:
+        try:
+            df = pd.read_csv(fn)
+            return df
+        except IOError:
+            logger.debug("Cache file '{}' not found".format(fn))
+
+    earnings = load_earnings(symbol)
+    dividends = load_dividends(symbol)
+    df = pd.concat([earnings, dividends])
+
+    try:
+        df.to_csv(fn)
+    except IOError:
+        logger.error("Failed to save/cache to path: {}", fn)
+    return df
 
 # ARGPARSE COMMANDS  -----------------------------------------
 def load_historical_cmd(args):
@@ -114,6 +167,20 @@ def load_historical_cmd(args):
         pd.DataFrame: cached or loaded DataFrame
     """
     return load_historical(args.symbol, args.range, args.force)
+
+
+def load_calendar_cmd(args):
+    """
+    Loads calendar (earnings and dividend) data from IEX Finance
+
+    Args:
+        args: parsed arguments object containing arguments for the
+            load_earnings method
+
+    Returns:
+        pd.DataFrame: cached or loaded DataFrame
+    """
+    return load_calendar(args.symbol, args.force)
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -136,6 +203,10 @@ if __name__ == '__main__':
     hist_parser.add_argument("-r", "--range", type=str, default="1m",
                              help="lookback period")
     hist_parser.set_defaults(func=load_historical_cmd)
+
+    earnings_parser = subparsers.add_parser("calendar")
+    earnings_parser.add_argument("symbol", type=str, help="stock ticker to look up")
+    earnings_parser.set_defaults(func=load_calendar_cmd)
 
     args = parser.parse_args()
 

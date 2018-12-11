@@ -261,24 +261,19 @@ def extract_indicators(strategy):
 
 
 # FULL PROCESS -----------------------------------------
-def run_backtest(symbol, strategy=SupertrendADStrategy):
-    cerebro = bt.Cerebro()
-
+def run_backtest(symbol, cerebro=bt.Cerebro(), strategy=SupertrendADStrategy):
     # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(SupertrendADStrategy)
+    cerebro.addstrategy(strategy)
 
     # Set up the data source
-    cerebro = configure_data(cerebro, symbol=args.symbol)
+    cerebro = configure_data(cerebro, symbol=symbol)
 
     # Run over everything
     result = cerebro.run()
 
     stats = pd.Series(extract_indicators(result[0]))[0]
-    print("{}\n".format(args.symbol) + "-"*8)
-    for key in stats:
-        print("{:32}:{}".format(key, stats[key]))
 
-    return cerebro
+    return stats
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -303,7 +298,12 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    cerebro = run_backtest(args.symbol)
+    cerebro = bt.Cerebro()
+    stats = run_backtest(args.symbol, cerebro=cerebro)
+
+    print("{}\n".format(args.symbol) + "-"*8)
+    for key in stats:
+        print("{:32}:{}".format(key, stats[key]))
 
     if args.plot:
         cerebro.plot(style='candle')

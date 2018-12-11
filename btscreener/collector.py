@@ -29,8 +29,8 @@ import backtrader as bt
 import pandas as pd
 
 # Our own imports ---------------------------------------------------
-from btscreener.chart import (
-    configure_data, extract_indicators, SupertrendADStrategy)
+from btscreener.chart import run_backtest
+from iex import load_calendar
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -62,42 +62,27 @@ logger = logging.getLogger(__name__)
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# DATA CONFIGURATION -----------------------------------------
-def configure_datas(cerebro, index, range="3m"):
-    """
-    Configures a cerebro object with a bunch of datas objects
-    The format for a parameter is::
+# PER-TICKER COLLECTION -----------------------------------------
+def collect_stats(symbol):
+    chart_stats = run_backtest(symbol)
+    calendar_stats = load_calendar(symbol)
+    return pd.concat([chart_stats, calendar_stats])
 
+# COLLECTION GENERATOR -----------------------------------------
+def generate_stats(index):
+    """
+    Collects chart and calendar data for each ticker in the index and returns
+    a DataFrame containing the tabulated results
     Args:
-        cerebro (bt.Cerebro): cerebro object to configure
-        index (list-like): Index of tickers to use, a data object will be
-            created for each ticker.
-        range (str): range of historical data to configure
-
-    Returns:
-        bt.Cerebro: updated cerebro object
-    """
-    for symbol in index:
-        cerebro = configure_data(cerebro, symbol, range)
-    return cerebro
-
-# FUNCTION CATEGORY 2 -----------------------------------------
-def collect_indicators(result, index):
-    """
-    Extracts the indicators from each results section and yields them as a
-    row an array-like
-
-    Args:
-        results (list(bt.Strategy)): List of Strategy instances returned by the
-            backtrader runs on each data source
-        index (list-like): Index of tickers to use, mapping to the datas
-            objects in the Strategy
+        index (list-like): Index of tickers to use
 
     Yields:
         OrderedDict: A dict-like row for an array-like, with the first key
             being "symbol".
     """
-    return pd.DataFrame(extract_indicators(result), index=index)
+    for symbol in index:
+        logger.info("Collecting stats for symbol: {}".format(symbol))
+        yield collect_stats(symbol)
 
 # FUNCTION CATEGORY n -----------------------------------------
 
@@ -125,20 +110,7 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    # Set up Cerebro for a backtest
-    cerebro = bt.Cerebro()
-
-    # Set up the data sources for the DJI components
-    cerebro = configure_datas(cerebro, dji_components)
-
-    # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(SupertrendADStrategy)
-
-    # Run over everything
-    results = cerebro.run()
-
-    # Extract the results
-    table = collect_indicators(results[0], dji_components)
+    table = pd.DataFrame(generate_stats(dji_components))
 
     # Save to file
     fn = args.out.format(date=datetime.date.today())

@@ -61,7 +61,26 @@ parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# CACHE UTILS       -----------------------------------------
+# ESTIMATION UTILS  -----------------------------------------
+def estimate_next(prev_dates):
+    """
+    Estimates the most likely next date based on previous dates
+    Args:
+        prev_dates (list(datetime.datetime)): List of previous dates to use
+            for our guesses
+
+    Returns:
+        datetime.datetime: Best guess for next event
+    """
+    today = datetime.datetime.today()
+    guesses = [i + datetime.timedelta(days=365) for i in prev_dates]
+    guesses += [i + datetime.timedelta(days=730) for i in prev_dates]
+    try:
+        return min(i for i in guesses
+                   if i + datetime.timedelta(days=365) > today)
+    except ValueError:
+        return None
+
 
 # WEB LOADERS       -----------------------------------------
 def load_historical(symbol, range="1m", force=False):
@@ -147,21 +166,18 @@ def load_calendar(symbol, force=False):
     fn = CACHE_FILE_CALENDAR_FORMAT.format(today=today, symbol=symbol)
     if not force:
         try:
-            df = pd.read_csv(fn)
-            return df
+            s = pd.Series.from_csv(fn)
+            return s
         except IOError:
-            logger.debug("Cache file '{}' not found".format(fn))
+            logger.warning("Cache file '{}' not found".format(fn))
 
     earnings = load_earnings(symbol)
     dividends = load_dividends(symbol)
 
-    today = datetime.datetime.today()
     last_reportDate = max(earnings.index)
-    next_reportDate = min(i + datetime.timedelta(days=365) for i in earnings.index
-                          if i + datetime.timedelta(days=365) > today)
+    next_reportDate = estimate_next(earnings.index)
     last_exDate = max(dividends.index)
-    next_exDate = min(i + datetime.timedelta(days=365) for i in dividends.index
-                      if i + datetime.timedelta(days=365) > today)
+    next_exDate = estimate_next(earnings.index)
     calendar = pd.Series(OrderedDict([
         ("lastEPSReportDate", last_reportDate),
         ("nextEPSReportDate", next_reportDate),

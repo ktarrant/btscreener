@@ -248,20 +248,23 @@ def extract_indicators(strategy):
     Returns:
         OrderedDict: extracted values
     """
-    for data in strategy.datas:
-        rv = OrderedDict()
-        rv["trend"] = strategy.stads[data].st.lines.trend[0]
-        rv["support"] = strategy.stads[data].lines.support[0]
-        rv["resistance"] = strategy.stads[data].lines.resistance[0]
-        rv["prev_close"] = data.close[-1]
-        rv["close"] = data.close[0]
-        rv["open"] = data.open[0]
-        rv["lastbar"] = data.datetime.date()
-        yield rv
+    data = strategy.datas[0]
+    return pd.Series(OrderedDict([
+        ("trend", float(strategy.stads[data].st.lines.trend[0])),
+        ("support", float(strategy.stads[data].lines.support[0])),
+        ("resistance", float(strategy.stads[data].lines.resistance[0])),
+        ("prev_close", float(data.close[-1])),
+        ("close", float(data.close[0])),
+        ("open", float(data.open[0])),
+        ("lastbar", data.datetime.date()),
+    ]))
 
 
 # FULL PROCESS -----------------------------------------
-def run_backtest(symbol, cerebro=bt.Cerebro(), strategy=SupertrendADStrategy):
+def run_backtest(symbol, cerebro=None, strategy=SupertrendADStrategy):
+    if not cerebro:
+        cerebro = bt.Cerebro()
+
     # Add an indicator that we can extract afterwards
     cerebro.addstrategy(strategy)
 
@@ -271,9 +274,7 @@ def run_backtest(symbol, cerebro=bt.Cerebro(), strategy=SupertrendADStrategy):
     # Run over everything
     result = cerebro.run()
 
-    stats = pd.Series(extract_indicators(result[0]))[0]
-
-    return stats
+    return extract_indicators(result[0])
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -302,8 +303,8 @@ if __name__ == '__main__':
     stats = run_backtest(args.symbol, cerebro=cerebro)
 
     print("{}\n".format(args.symbol) + "-"*8)
-    for key in stats:
-        print("{:32}:{}".format(key, stats[key]))
+    for key in stats.index:
+        print("{:32}:{}".format(key, stats.loc[key]))
 
     if args.plot:
         cerebro.plot(style='candle')

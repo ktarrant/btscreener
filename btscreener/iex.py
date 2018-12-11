@@ -21,6 +21,7 @@
 # stdlib imports -------------------------------------------------------
 import logging
 import datetime
+from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
 import pandas as pd
@@ -46,6 +47,9 @@ URL_DIVIDENDS = (
 # LOCAL UTILITIES
 # -----------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
+
+parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
+""" Parses a date like 2018-02-01 """
 
 
 # -----------------------------------------------------------------------------
@@ -105,6 +109,8 @@ def load_earnings(symbol):
     logger.info("Loading: '{}'".format(url))
     result = requests.get(url).json()
     df = pd.DataFrame(result["earnings"])
+    df[["EPSReportDate", "fiscalEndDate"]] = (
+        df[["EPSReportDate", "fiscalEndDate"]].applymap(parsedate))
     return df.set_index("EPSReportDate")
 
 def load_dividends(symbol, range='1y'):
@@ -121,6 +127,8 @@ def load_dividends(symbol, range='1y'):
     url = URL_DIVIDENDS.format(symbol=symbol, range=range)
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
+    date_cols = ["declaredDate", "exDate", "paymentDate", "recordDate"]
+    df[date_cols] = df[date_cols].applymap(parsedate)
     return df.set_index("exDate")
 
 def load_calendar(symbol, force=False):
@@ -146,13 +154,27 @@ def load_calendar(symbol, force=False):
 
     earnings = load_earnings(symbol)
     dividends = load_dividends(symbol)
-    df = pd.concat([earnings, dividends])
+
+    today = datetime.datetime.today()
+    last_reportDate = max(earnings.index)
+    next_reportDate = min(i + datetime.timedelta(days=365) for i in earnings.index
+                          if i + datetime.timedelta(days=365) > today)
+    last_exDate = max(dividends.index)
+    next_exDate = min(i + datetime.timedelta(days=365) for i in dividends.index
+                      if i + datetime.timedelta(days=365) > today)
+    calendar = pd.Series(OrderedDict([
+        ("lastEPSReportDate", last_reportDate),
+        ("nextEPSReportDate", next_reportDate),
+        ("lastExDate", last_exDate),
+        ("lastDividend", dividends.loc[last_exDate, "amount"]),
+        ("nextExDate", next_exDate),
+    ]))
 
     try:
-        df.to_csv(fn)
+        calendar.to_csv(fn)
     except IOError:
         logger.error("Failed to save/cache to path: {}", fn)
-    return df
+    return calendar
 
 # ARGPARSE COMMANDS  -----------------------------------------
 def load_historical_cmd(args):

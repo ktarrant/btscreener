@@ -237,8 +237,7 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
     cerebro.adddata(data)
     return cerebro
 
-
-# FUNCTION CATEGORY 2 -----------------------------------------
+# EXTRACTION HELPERS -----------------------------------------
 def extract_indicators(strategy):
     """
     Extracts the latest values from the indicators in the provided Strategy
@@ -260,8 +259,26 @@ def extract_indicators(strategy):
         rv["lastbar"] = data.datetime.date()
         yield rv
 
-# FUNCTION CATEGORY n -----------------------------------------
 
+# FULL PROCESS -----------------------------------------
+def run_backtest(symbol, strategy=SupertrendADStrategy):
+    cerebro = bt.Cerebro()
+
+    # Add an indicator that we can extract afterwards
+    cerebro.addstrategy(SupertrendADStrategy)
+
+    # Set up the data source
+    cerebro = configure_data(cerebro, symbol=args.symbol)
+
+    # Run over everything
+    result = cerebro.run()
+
+    stats = pd.Series(extract_indicators(result[0]))[0]
+    print("{}\n".format(args.symbol) + "-"*8)
+    for key in stats:
+        print("{:32}:{}".format(key, stats[key]))
+
+    return cerebro
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -286,22 +303,7 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    # Set up Cerebro for a backtest
-    cerebro = bt.Cerebro()
-
-    # Set up the data source
-    cerebro = configure_data(cerebro, symbol=args.symbol)
-
-    # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(SupertrendADStrategy)
-
-    # Run over everything
-    result = cerebro.run()
-
-    stats = list(extract_indicators(result[0]))[0]
-    print("{}\n".format(args.symbol) + "-"*8)
-    for key in stats:
-        print("{:32}:{}".format(key, stats[key]))
+    cerebro = run_backtest(args.symbol)
 
     if args.plot:
         cerebro.plot(style='candle')

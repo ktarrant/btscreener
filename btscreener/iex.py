@@ -101,6 +101,20 @@ def load_historical(symbol, range="1m", force=False):
     return load_cached_df(fn, url, force)
 
 
+# ARGPARSE COMMANDS  -----------------------------------------
+def load_historical_cmd(args):
+    """
+    Loads historical data from IEX Finance
+
+    Args:
+        args: parsed arguments object containing arguments for the
+            load_historical method
+
+    Returns:
+        pd.DataFrame: cached or loaded DataFrame
+    """
+    return load_historical(args.symbol, args.range, args.force)
+
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
 # -----------------------------------------------------------------------------
@@ -114,11 +128,14 @@ if __name__ == '__main__':
                         help="skip cache check step")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
+
     subparsers = parser.add_subparsers()
+
     hist_parser = subparsers.add_parser("historical")
     hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
     hist_parser.add_argument("-r", "--range", type=str, default="1m",
                              help="lookback period")
+    hist_parser.set_defaults(func=load_historical_cmd)
 
     args = parser.parse_args()
 
@@ -126,5 +143,5 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    df = load_historical(args.symbol, args.range, args.force)
+    df = args.func(args)
     print(df)

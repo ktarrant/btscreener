@@ -144,9 +144,12 @@ def load_dividends(symbol, range='1y'):
     url = URL_DIVIDENDS.format(symbol=symbol, range=range)
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
-    date_cols = ["declaredDate", "exDate", "paymentDate", "recordDate"]
-    df[date_cols] = df[date_cols].applymap(parsedate)
-    return df.set_index("exDate")
+    if "exDate" in df.columns:
+        date_cols = ["declaredDate", "exDate", "paymentDate", "recordDate"]
+        df[date_cols] = df[date_cols].applymap(parsedate)
+        return df.set_index("exDate")
+    else:
+        return None
 
 def load_calendar(symbol, cache=False):
     '''
@@ -171,16 +174,27 @@ def load_calendar(symbol, cache=False):
 
     earnings = load_earnings(symbol)
     dividends = load_dividends(symbol)
+    if earnings is not None:
+        last_reportDate = max(earnings.index)
+        next_reportDate = estimate_next(earnings.index)
+    else:
+        last_reportDate = None
+        next_reportDate = None
 
-    last_reportDate = max(earnings.index)
-    next_reportDate = estimate_next(earnings.index)
-    last_exDate = max(dividends.index)
-    next_exDate = estimate_next(earnings.index)
+    if dividends is not None:
+        last_exDate = max(dividends.index)
+        last_dividend = dividends.loc[last_exDate, "amount"]
+        next_exDate = estimate_next(earnings.index)
+    else:
+        last_exDate = None
+        last_dividend = None
+        next_exDate = None
+
     calendar = pd.Series(OrderedDict([
         ("lastEPSReportDate", last_reportDate),
         ("nextEPSReportDate", next_reportDate),
         ("lastExDate", last_exDate),
-        ("lastDividend", dividends.loc[last_exDate, "amount"]),
+        ("lastDividend", last_dividend),
         ("nextExDate", next_exDate),
     ]))
     if cache:

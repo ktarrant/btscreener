@@ -42,6 +42,18 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
+faves_components = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
+                    "dis", "de", "mcd", "ibm", "cpb", # grandpas
+                    "nvda", "amd", "mu", "intc", # semis
+                    "bac", "usb", "brk.b", # banks
+                    "x", "cat", "ba", "luv", # trade wars
+                    "tsla", "snap", "twtr", "spot",  # unicorns
+                    "tlry", "cgc", "stz", # pot
+                    "pfe", # healthcare
+                    ]
+"""list(str): List of liquid, optionable, and well-known tickers according
+to the author """
+
 DEFAULT_FILE_FORMAT = "{date}_SuperAD_scan.csv"
 """ str: Default path format for output CSV file when run as a script """
 
@@ -104,7 +116,7 @@ if __name__ == '__main__':
     """)
     parser.add_argument("-s", "--symbol", action="append")
     parser.add_argument("-g", "--group", action="append",
-                        choices=["dji"])
+                        choices=["faves", "dji"])
     parser.add_argument("-c", "--cache", action="store_true",
                         help="cache loaded data to reduce API queries")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -123,6 +135,8 @@ if __name__ == '__main__':
     if not args.group:
         if len(symbols) == 0:
             raise ValueError("No symbols or groups provided")
+    elif "faves" in args.group:
+        symbols += faves_components
     elif "dji" in args.group:
         symbols += dji_components
 

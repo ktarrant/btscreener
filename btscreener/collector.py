@@ -31,6 +31,7 @@ import pandas as pd
 # Our own imports ---------------------------------------------------
 from btscreener.chart import run_backtest
 from iex import load_calendar
+from filter import check_ad_breakout
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -66,7 +67,10 @@ logger = logging.getLogger(__name__)
 def collect_stats(symbol):
     chart_stats = run_backtest(symbol)
     calendar_stats = load_calendar(symbol)
-    return pd.concat([chart_stats, calendar_stats])
+    base = pd.concat([chart_stats, calendar_stats])
+    base["breakout"] = check_ad_breakout(base)
+
+    return base
 
 # COLLECTION GENERATOR -----------------------------------------
 def generate_stats(index):
@@ -98,6 +102,9 @@ if __name__ == '__main__':
     Complete description of the runtime of the script, what it does and how it
     should be used
     """)
+    parser.add_argument("-s", "--symbol", action="append")
+    parser.add_argument("-g", "--group", action="append",
+                        choices=["dji"])
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
     parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
@@ -110,7 +117,14 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    table = pd.DataFrame(generate_stats(dji_components), index=dji_components)
+    symbols = args.symbol if args.symbol else []
+    if not args.group:
+        if len(symbols) == 0:
+            raise ValueError("No symbols or groups provided")
+    elif "dji" in args.group:
+        symbols += dji_components
+
+    table = pd.DataFrame(generate_stats(symbols), index=symbols)
 
     # Save to file
     fn = args.out.format(date=datetime.date.today())

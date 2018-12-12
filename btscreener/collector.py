@@ -64,8 +64,8 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 
 # PER-TICKER COLLECTION -----------------------------------------
-def collect_stats(symbol):
-    chart_stats = run_backtest(symbol)
+def collect_stats(symbol, cache_historical=True):
+    chart_stats = run_backtest(symbol, cache=cache_historical)
     calendar_stats = load_calendar(symbol)
     base = pd.concat([chart_stats, calendar_stats])
     base["breakout"] = check_ad_breakout(base)
@@ -105,6 +105,8 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--symbol", action="append")
     parser.add_argument("-g", "--group", action="append",
                         choices=["dji"])
+    parser.add_argument("-c", "--cache", action="store_true",
+                        help="cache loaded data to reduce API queries")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
     parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
@@ -126,10 +128,10 @@ if __name__ == '__main__':
 
     table = pd.DataFrame(generate_stats(symbols), index=symbols)
 
+    # Print
+    print(table)
+
     # Save to file
     fn = args.out.format(date=datetime.date.today())
     print("Saving to: {}".format(fn))
     table.to_csv(fn)
-
-    # Print
-    print(table)

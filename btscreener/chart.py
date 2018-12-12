@@ -22,7 +22,6 @@ provide information and signals that can help the user make decisions.
 
 # stdlib imports -------------------------------------------------------
 import logging
-from copy import deepcopy
 from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
@@ -216,7 +215,7 @@ class SupertrendADStrategy(bt.Strategy):
 # -----------------------------------------------------------------------------
 
 # SETUP HELPERS     -----------------------------------------
-def configure_data(cerebro, symbol="aapl", range="6m"):
+def configure_data(cerebro, symbol="aapl", range="6m", cache=False):
     '''
     Runs strategy against historical data
 
@@ -224,11 +223,12 @@ def configure_data(cerebro, symbol="aapl", range="6m"):
         cerebro (bt.Cerebro): cerebro object to configure
         symbol (str): symbol of historical data to configure
         range (str): range of historical data to configure
+        cache (bool): True to try using csv file caching to reduce API queries
 
     Returns:
         bt.Cerebro: updated cerebro object
     '''
-    df = load_historical(symbol, range=range)
+    df = load_historical(symbol, range=range, cache=cache)
     df["datetime"] = pd.to_datetime(df["date"])
     df = df.set_index("datetime")
     numeric_cols = [c for c in bt.feeds.PandasDirectData.datafields if c in df.columns]
@@ -246,7 +246,7 @@ def extract_indicators(strategy):
         strategy (bt.Strategy): Strategy with indicators
 
     Returns:
-        OrderedDict: extracted values
+        pd.Series: extracted values
     """
     data = strategy.datas[0]
     return pd.Series(OrderedDict([
@@ -261,15 +261,27 @@ def extract_indicators(strategy):
 
 
 # FULL PROCESS -----------------------------------------
-def run_backtest(symbol, cerebro=None, strategy=SupertrendADStrategy):
+def run_backtest(symbol, cerebro=None, cache=False):
+    '''
+    Runs strategy against historical data
+
+    Args:
+        symbol (str): symbol of historical data to configure
+        cerebro (bt.Cerebro): cerebro object to configure, or None to use default
+        cache (bool): True to try using csv file caching to reduce API queries
+
+    Returns:
+        pd.Series: technical stats for symbol
+    '''
+
     if not cerebro:
         cerebro = bt.Cerebro()
 
     # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(strategy)
+    cerebro.addstrategy(SupertrendADStrategy)
 
     # Set up the data source
-    cerebro = configure_data(cerebro, symbol=symbol)
+    cerebro = configure_data(cerebro, symbol=symbol, cache=cache)
 
     # Run over everything
     result = cerebro.run()

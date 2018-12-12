@@ -83,7 +83,7 @@ def estimate_next(prev_dates):
 
 
 # WEB LOADERS       -----------------------------------------
-def load_historical(symbol, range="1m", force=False):
+def load_historical(symbol, range="1m", cache=False):
     '''
     Loads historical data from IEX Finance
 
@@ -99,7 +99,7 @@ def load_historical(symbol, range="1m", force=False):
     today = datetime.date.today()
     fn = CACHE_FILE_HISTORICAL_FORMAT.format(
         today=today, symbol=symbol, range=range)
-    if not force:
+    if cache:
         try:
             df = pd.read_csv(fn)
             return df
@@ -108,10 +108,8 @@ def load_historical(symbol, range="1m", force=False):
 
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
-    try:
+    if cache:
         df.to_csv(fn)
-    except IOError:
-        logger.error("Failed to save/cache to path: {}", fn)
     return df
 
 def load_earnings(symbol):
@@ -150,7 +148,7 @@ def load_dividends(symbol, range='1y'):
     df[date_cols] = df[date_cols].applymap(parsedate)
     return df.set_index("exDate")
 
-def load_calendar(symbol, force=False):
+def load_calendar(symbol, cache=False):
     '''
     Loads calendar data from IEX Finance
 
@@ -164,7 +162,7 @@ def load_calendar(symbol, force=False):
 
     today = datetime.date.today()
     fn = CACHE_FILE_CALENDAR_FORMAT.format(today=today, symbol=symbol)
-    if not force:
+    if cache:
         try:
             s = pd.Series.from_csv(fn)
             return s
@@ -185,11 +183,8 @@ def load_calendar(symbol, force=False):
         ("lastDividend", dividends.loc[last_exDate, "amount"]),
         ("nextExDate", next_exDate),
     ]))
-
-    try:
+    if cache:
         calendar.to_csv(fn)
-    except IOError:
-        logger.error("Failed to save/cache to path: {}", fn)
     return calendar
 
 # ARGPARSE COMMANDS  -----------------------------------------
@@ -204,7 +199,7 @@ def load_historical_cmd(args):
     Returns:
         pd.DataFrame: cached or loaded DataFrame
     """
-    return load_historical(args.symbol, args.range, args.force)
+    return load_historical(args.symbol, args.range, args.cache)
 
 
 def load_calendar_cmd(args):
@@ -218,7 +213,7 @@ def load_calendar_cmd(args):
     Returns:
         pd.DataFrame: cached or loaded DataFrame
     """
-    return load_calendar(args.symbol, args.force)
+    return load_calendar(args.symbol, args.cache)
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -229,8 +224,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
     Loads historical data locally or from IEX if necessary and caches it.
     """)
-    parser.add_argument("-f", "--force", action="store_true",
-                        help="skip cache check step")
+    parser.add_argument("-c", "--cache", action="store_true",
+                        help="cache loaded data")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
 
@@ -251,6 +246,5 @@ if __name__ == '__main__':
     # configure logging
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
-
     df = args.func(args)
     print(df)

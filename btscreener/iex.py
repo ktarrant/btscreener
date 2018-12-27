@@ -32,8 +32,6 @@ import requests
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
-CACHE_FILE_HISTORICAL_FORMAT = "{today}_{symbol}_{range}.csv"
-CACHE_FILE_CALENDAR_FORMAT = "{today}_{symbol}_calendar.csv"
 
 # -----------------------------------------------------------------------------
 # CONSTANTS
@@ -96,20 +94,8 @@ def load_historical(symbol, range="1m", cache=False):
         pd.DataFrame: cached or loaded DataFrame
     '''
     url = URL_CHART.format(symbol=symbol, range=range)
-    today = datetime.date.today()
-    fn = CACHE_FILE_HISTORICAL_FORMAT.format(
-        today=today, symbol=symbol, range=range)
-    if cache:
-        try:
-            df = pd.read_csv(fn)
-            return df
-        except IOError:
-            logger.debug("Cache file '{}' not found".format(fn))
-
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
-    if cache:
-        df.to_csv(fn)
     return df
 
 def load_earnings(symbol):
@@ -151,26 +137,18 @@ def load_dividends(symbol, range='1y'):
     else:
         return None
 
-def load_calendar(symbol, cache=False):
+def load_calendar(symbol):
     '''
     Loads calendar data from IEX Finance
 
     Args:
         symbol (str): stock ticker to look up
-        force (bool): if True, will skip checking for cache file
 
     Returns:
         pd.DataFrame: cached or loaded DataFrame
     '''
 
     today = datetime.date.today()
-    fn = CACHE_FILE_CALENDAR_FORMAT.format(today=today, symbol=symbol)
-    if cache:
-        try:
-            s = pd.Series.from_csv(fn)
-            return s
-        except IOError:
-            logger.warning("Cache file '{}' not found".format(fn))
 
     earnings = load_earnings(symbol)
     dividends = load_dividends(symbol)
@@ -197,26 +175,31 @@ def load_calendar(symbol, cache=False):
         ("lastDividend", last_dividend),
         ("nextExDate", next_exDate),
     ]))
-    if cache:
-        calendar.to_csv(fn)
     return calendar
 
-# ARGPARSE COMMANDS  -----------------------------------------
-def load_historical_cmd(args):
+# ARGPARSE CONFIGURATION  -----------------------------------------
+def add_subparser_historical(subparsers):
     """
     Loads historical data from IEX Finance
 
     Args:
-        args: parsed arguments object containing arguments for the
-            load_historical method
+        subparsers: subparsers to add to
 
     Returns:
-        pd.DataFrame: cached or loaded DataFrame
+        Created subparser object
     """
-    return load_historical(args.symbol, args.range, args.cache)
+    def cmd_hist(args):
+        return load_historical(args.symbol, args.range, args.cache)
+
+    hist_parser = subparsers.add_parser("historical")
+    hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
+    hist_parser.add_argument("-r", "--range", type=str, default="1m",
+                             help="lookback period")
+    hist_parser.set_defaults(func=cmd_hist)
+    return hist_parser
 
 
-def load_calendar_cmd(args):
+def add_subparser_calendar(subparsers):
     """
     Loads calendar (earnings and dividend) data from IEX Finance
 
@@ -227,7 +210,12 @@ def load_calendar_cmd(args):
     Returns:
         pd.DataFrame: cached or loaded DataFrame
     """
-    return load_calendar(args.symbol, args.cache)
+    def cmd_calendar(args):
+        return load_calendar(args.symbol, args.cache)
+    earnings_parser = subparsers.add_parser("calendar")
+    earnings_parser.add_argument("symbol", type=str, help="stock ticker to look up")
+    earnings_parser.set_defaults(func=cmd_calendar)
+    return earnings_parser
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -245,15 +233,8 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers()
 
-    hist_parser = subparsers.add_parser("historical")
-    hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
-    hist_parser.add_argument("-r", "--range", type=str, default="1m",
-                             help="lookback period")
-    hist_parser.set_defaults(func=load_historical_cmd)
-
-    earnings_parser = subparsers.add_parser("calendar")
-    earnings_parser.add_argument("symbol", type=str, help="stock ticker to look up")
-    earnings_parser.set_defaults(func=load_calendar_cmd)
+    add_subparser_historical(subparsers)
+    add_subparser_calendar(subparsers)
 
     args = parser.parse_args()
 

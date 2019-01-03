@@ -191,10 +191,12 @@ def add_subparser_historical(subparsers):
     def cmd_hist(args):
         return load_historical(args.symbol, args.range, args.cache)
 
-    hist_parser = subparsers.add_parser("historical")
+    hist_parser = subparsers.add_parser("historical", description="""
+    loads historical OHLC data for a stock symbol 
+    """)
     hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
     hist_parser.add_argument("-r", "--range", type=str, default="1m",
-                             help="lookback period")
+                             help="lookback period, default: 1m")
     hist_parser.set_defaults(func=cmd_hist)
     return hist_parser
 
@@ -212,8 +214,11 @@ def add_subparser_calendar(subparsers):
     """
     def cmd_calendar(args):
         return load_calendar(args.symbol, args.cache)
-    earnings_parser = subparsers.add_parser("calendar")
-    earnings_parser.add_argument("symbol", type=str, help="stock ticker to look up")
+    earnings_parser = subparsers.add_parser("calendar", description="""
+    loads calendar earnings and dividend data with estimates for next event
+    """)
+    earnings_parser.add_argument("symbol", type=str,
+                                 help="stock ticker to look up")
     earnings_parser.set_defaults(func=cmd_calendar)
     return earnings_parser
 

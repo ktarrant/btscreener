@@ -26,6 +26,7 @@ from collections import OrderedDict
 # Third-party imports -----------------------------------------------
 import pandas as pd
 import requests
+import backtrader as bt
 
 # Our own imports ---------------------------------------------------
 
@@ -59,7 +60,7 @@ parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# ESTIMATION UTILS  -----------------------------------------
+# DATA UTILS  -----------------------------------------
 def estimate_next(prev_dates):
     """
     Estimates the most likely next date based on previous dates
@@ -79,16 +80,14 @@ def estimate_next(prev_dates):
     except ValueError:
         return None
 
-
 # WEB LOADERS       -----------------------------------------
-def load_historical(symbol, range="1m", cache=False):
+def load_historical(symbol, range="1m"):
     '''
     Loads historical data from IEX Finance
 
     Args:
         symbol (str): stock ticker to look up
         range (str): lookback period
-        force (bool): if True, will skip checking for cache file
 
     Returns:
         pd.DataFrame: cached or loaded DataFrame
@@ -96,6 +95,10 @@ def load_historical(symbol, range="1m", cache=False):
     url = URL_CHART.format(symbol=symbol, range=range)
     logger.info("Loading: '{}'".format(url))
     df = pd.DataFrame(requests.get(url).json())
+    df["datetime"] = pd.to_datetime(df["date"])
+    df = df.set_index("datetime")
+    numeric_cols = [c for c in bt.feeds.PandasDirectData.datafields if c in df.columns]
+    df = df[numeric_cols].apply(pd.to_numeric)
     return df
 
 def load_earnings(symbol):
@@ -189,7 +192,7 @@ def add_subparser_historical(subparsers):
         Created subparser object
     """
     def cmd_hist(args):
-        return load_historical(args.symbol, args.range, args.cache)
+        return load_historical(args.symbol, args.range)
 
     hist_parser = subparsers.add_parser("historical", description="""
     loads historical OHLC data for a stock symbol 
@@ -213,7 +216,7 @@ def add_subparser_calendar(subparsers):
         pd.DataFrame: cached or loaded DataFrame
     """
     def cmd_calendar(args):
-        return load_calendar(args.symbol, args.cache)
+        return load_calendar(args.symbol)
     earnings_parser = subparsers.add_parser("calendar", description="""
     loads calendar earnings and dividend data with estimates for next event
     """)
@@ -231,8 +234,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
     Loads historical data locally or from IEX if necessary and caches it.
     """)
-    parser.add_argument("-c", "--cache", action="store_true",
-                        help="cache loaded data")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
 

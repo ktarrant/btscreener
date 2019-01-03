@@ -205,70 +205,48 @@ class SupertrendAD(bt.Indicator):
             else:
                 self.lines.support[0] = self.lines.support[-1]
 
-class SupertrendADStrategy(bt.Strategy):
+class SummaryStrategy(bt.Strategy):
 
     def __init__(self):
-        self.stads = {data: SupertrendAD(data) for data in self.datas}
+        self.stad = SupertrendAD(self.data0)
+
+    def get_summary(self):
+        return pd.Series(OrderedDict([
+            ("trend", float(self.stad.st.lines.trend[0])),
+            ("support", float(self.stad.lines.support[0])),
+            ("resistance", float(self.stad.lines.resistance[0])),
+            ("prev_close", float(self.data0.close[-1])),
+            ("close", float(self.data0.close[0])),
+            ("open", float(self.data0.open[0])),
+            ("lastbar", self.data0.datetime.date()),
+        ]))
 
 # -----------------------------------------------------------------------------
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
 # SETUP HELPERS     -----------------------------------------
-def configure_data(cerebro, symbol="aapl", range="6m", cache=False):
+def configure_data(cerebro, table, range="6m"):
     '''
     Runs strategy against historical data
 
     Args:
         cerebro (bt.Cerebro): cerebro object to configure
-        symbol (str): symbol of historical data to configure
         range (str): range of historical data to configure
-        cache (bool): True to try using csv file caching to reduce API queries
 
     Returns:
         bt.Cerebro: updated cerebro object
     '''
-    df = load_historical(symbol, range=range, cache=cache)
-    df["datetime"] = pd.to_datetime(df["date"])
-    df = df.set_index("datetime")
-    numeric_cols = [c for c in bt.feeds.PandasDirectData.datafields if c in df.columns]
-    df = df[numeric_cols].apply(pd.to_numeric)
-    data = bt.feeds.PandasDirectData(dataname=df, openinterest=-1)
-    cerebro.adddata(data)
     return cerebro
 
-# EXTRACTION HELPERS -----------------------------------------
-def extract_indicators(strategy):
-    """
-    Extracts the latest values from the indicators in the provided Strategy
-
-    Args:
-        strategy (bt.Strategy): Strategy with indicators
-
-    Returns:
-        pd.Series: extracted values
-    """
-    data = strategy.datas[0]
-    return pd.Series(OrderedDict([
-        ("trend", float(strategy.stads[data].st.lines.trend[0])),
-        ("support", float(strategy.stads[data].lines.support[0])),
-        ("resistance", float(strategy.stads[data].lines.resistance[0])),
-        ("prev_close", float(data.close[-1])),
-        ("close", float(data.close[0])),
-        ("open", float(data.open[0])),
-        ("lastbar", data.datetime.date()),
-    ]))
-
-
 # FULL PROCESS -----------------------------------------
-def run_backtest(symbol, cerebro=None, cache=False):
+def run_backtest(table, cerebro=None):
     '''
     Runs strategy against historical data
 
     Args:
-        symbol (str): symbol of historical data to configure
+        table (pd.DataFrame): table of OHLC data to backtest
         cerebro (bt.Cerebro): cerebro object to configure, or None to use default
-        cache (bool): True to try using csv file caching to reduce API queries
 
     Returns:
         pd.Series: technical stats for symbol
@@ -278,32 +256,89 @@ def run_backtest(symbol, cerebro=None, cache=False):
         cerebro = bt.Cerebro()
 
     # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(SupertrendADStrategy)
+    cerebro.addstrategy(SummaryStrategy)
 
     # Set up the data source
-    cerebro = configure_data(cerebro, symbol=symbol, cache=cache)
+    data = bt.feeds.PandasDirectData(dataname=table, openinterest=-1)
+    cerebro.adddata(data)
 
     # Run over everything
     result = cerebro.run()
 
-    return extract_indicators(result[0])
+    return result[0].get_summary()
 
+# ARGPARSE CONFIGURATION  -----------------------------------------
+def add_subparser_scan(subparsers):
+    """
+    runs a passive backtest on a very short window to get latest indicator data
+
+    Args:
+        subparsers: subparsers to add to
+
+    Returns:
+        Created subparser object
+    """
+    def cmd_scan(args):
+        # use shortest range for scan mode
+        hist = load_historical(args.symbol, range='1m')
+        table = run_backtest(hist)
+        print("{}\n".format(args.symbol) + "-" * 8)
+        for key in table.index:
+            print("{:32}:{}".format(key, table.loc[key]))
+        return table
+
+    parser = subparsers.add_parser("scan", description="""
+    runs a passive backtest on a very short window to get latest indicator data
+    """)
+    parser.add_argument("--symbol", type=str, default="aapl",
+                        help="stock ticker to look up")
+    parser.set_defaults(func=cmd_scan)
+    return parser
+
+def add_subparser_plot(subparsers):
+    """
+    plots a window of data using backtrader matplotlib magic
+
+    Args:
+        subparsers: subparsers to add to
+
+    Returns:
+        Created subparser object
+    """
+    def cmd_plot(args):
+        hist = load_historical(args.symbol, range=args.range)
+        cerebro = bt.Cerebro()
+        table = run_backtest(hist, cerebro=cerebro)
+        print(table)
+        cerebro.plot(style='candle')
+        return table
+
+    parser = subparsers.add_parser("plot", description="""
+    plots a window of data using backtrader matplotlib magic
+    """)
+    parser.add_argument("--symbol", type=str, default="aapl",
+                        help="stock ticker to look up")
+    parser.add_argument("-r", "--range", type=str, default="1y",
+                        help="chart range, default: 1y")
+    parser.set_defaults(func=cmd_plot)
+    return parser
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     import argparse
 
+
     parser = argparse.ArgumentParser(description="""
     Complete description of the runtime of the script, what it does and how it
     should be used
     """)
-    parser.add_argument("--symbol", type=str, default="aapl",
-                        help="stock ticker to look up")
-    parser.add_argument("-p", "--plot", action="store_true",
-                        help="show a matplotlib plot")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
+
+    subparsers = parser.add_subparsers()
+    scan_parser = add_subparser_scan(subparsers)
+    plot_parser = add_subparser_plot(subparsers)
 
     args = parser.parse_args()
 
@@ -311,12 +346,4 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    cerebro = bt.Cerebro()
-    stats = run_backtest(args.symbol, cerebro=cerebro)
-
-    print("{}\n".format(args.symbol) + "-"*8)
-    for key in stats.index:
-        print("{:32}:{}".format(key, stats.loc[key]))
-
-    if args.plot:
-        cerebro.plot(style='candle')
+    table = args.func(args)

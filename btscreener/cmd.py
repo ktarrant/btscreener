@@ -30,12 +30,14 @@ from iex import (add_subparser_historical, add_subparser_calendar,
     load_historical, load_calendar
 )
 from chart import add_subparser_scan, add_subparser_plot
+from collector import add_subparser_collect, load_symbol_list, run_collection
 
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
 CACHE_FILE_HISTORICAL_FORMAT = "{today}_{symbol}_{range}.csv"
 CACHE_FILE_CALENDAR_FORMAT = "{today}_{symbol}_calendar.csv"
+CACHE_FILE_COLLECT_FORMAT = "{today}_SuperAD_scan[{modes}].csv"
 
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
@@ -101,7 +103,6 @@ def load_cached_historical(args):
 
 def load_cached_calendar(args):
     """
-
     Args:
         args: args object
 
@@ -111,6 +112,24 @@ def load_cached_calendar(args):
     return load_cached(load_calendar, CACHE_FILE_CALENDAR_FORMAT,
                        force=args.force,
                        symbol=args.symbol,
+                       )
+
+def load_cached_collect(args):
+    """
+    Args:
+        args: args object
+
+    Returns:
+        dataframe
+    """
+    modes = args.group if args.group else []
+    modes += ["{}s".format(len(args.symbol))] if args.symbol else []
+    symbols = load_symbol_list(groups=args.group if args.group else [],
+                               symbols=args.symbol if args.symbol else [])
+    return load_cached(run_collection, CACHE_FILE_COLLECT_FORMAT,
+                       force=args.force,
+                       symbols=symbols,
+                       modes="-".join(modes)
                        )
 
 # FUNCTION CATEGORY n -----------------------------------------
@@ -150,6 +169,14 @@ if __name__ == '__main__':
     add_subparser_scan(chart_subparsers)
     add_subparser_plot(chart_subparsers)
 
+    collector_parser = subparsers.add_parser("collector", help="""
+    Collects summary data from a batch of symbols
+    """)
+    collector_subparsers = collector_parser.add_subparsers()
+
+    collect_parser = add_subparser_collect(collector_subparsers)
+    collect_parser.set_defaults(func=load_cached_collect)
+
     args = parser.parse_args()
 
     # configure logging
@@ -157,7 +184,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logLevel)
 
     # execute the function
-    df = args.func(args)
+    table = args.func(args)
 
     # print the result for the user
-    print(df)
+    print(table)

@@ -22,6 +22,7 @@ run into a combined data table keyed on symbol.
 
 # stdlib imports -------------------------------------------------------
 import logging
+import os
 from collections import OrderedDict
 
 # Third-party imports -----------------------------------------------
@@ -30,8 +31,7 @@ import pandas as pd
 
 # Our own imports ---------------------------------------------------
 from btscreener.chart import run_backtest
-from iex import load_calendar
-from filter import check_ad_breakout
+from iex import load_calendar, load_historical
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -54,14 +54,10 @@ faves_components = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """
 
-DEFAULT_FILE_FORMAT = "{date}_SuperAD_scan.csv"
-""" str: Default path format for output CSV file when run as a script """
-
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
 # -----------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
-
 
 # -----------------------------------------------------------------------------
 # EXCEPTIONS
@@ -75,14 +71,12 @@ logger = logging.getLogger(__name__)
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# PER-TICKER COLLECTION -----------------------------------------
-def collect_stats(symbol, cache_historical=True):
-    chart_stats = run_backtest(symbol, cache=cache_historical)
-    calendar_stats = load_calendar(symbol)
-    base = pd.concat([chart_stats, calendar_stats])
-    base["breakout"] = check_ad_breakout(base)
-
-    return base
+# SYMBOL LOADERS -----------------------------------------
+def load_sp_components(fn="sp500_weights.csv"):
+    dirname = os.path.dirname(__file__)
+    sp500_weights_src = os.path.join(dirname, fn)
+    sp500_weights = pd.read_csv(sp500_weights_src)
+    return list(sp500_weights.Symbol)
 
 # COLLECTION GENERATOR -----------------------------------------
 def generate_stats(index):
@@ -98,10 +92,61 @@ def generate_stats(index):
     """
     for symbol in index:
         logger.info("Collecting stats for symbol: {}".format(symbol))
-        yield collect_stats(symbol)
+        hist = load_historical(symbol)
+        chart_stats = run_backtest(hist)
+        calendar_stats = load_calendar(symbol)
+        combined = pd.concat([chart_stats, calendar_stats])
+        yield combined
 
-# FUNCTION CATEGORY n -----------------------------------------
 
+def run_collection(symbols, **kwargs):
+    table = pd.DataFrame(generate_stats(symbols), index=symbols)
+    return table
+
+# ARGPARSE CONFIGURATION  -----------------------------------------
+def load_symbol_list(groups=["faves"], symbols=[]):
+    if "faves" in groups:
+        symbols += faves_components
+    elif "dji" in groups:
+        symbols += dji_components
+    elif "sp" in groups:
+        symbols += load_sp_components()
+    if len(symbols) == 0:
+        raise ValueError("No symbols or groups provided")
+    # make sure it's unique
+    return list(set(symbols))
+
+def add_subparser_collect(subparsers):
+    """
+    Loads historical data from IEX Finance
+
+    Args:
+        subparsers: subparsers to add to
+
+    Returns:
+        Created subparser object
+    """
+    def cmd_collect(args):
+        symbols = load_symbol_list(groups=args.group if args.group else [],
+                                   symbols=args.symbol if args.symbol else [])
+        return run_collection(symbols)
+
+    parser = subparsers.add_parser("collect", description="""
+    collects summary technical and event data for a group of stock tickers
+    """)
+    parser.add_argument("-s", "--symbol", action="append")
+    parser.add_argument("-g", "--group", action="append",
+                        choices=["faves", "dji", "sp"])
+    # parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
+    #                     help="output file format. default: {}".format(
+    #                         DEFAULT_FILE_FORMAT))
+
+    # # Save to file
+    # fn = args.out.format(date=datetime.date.today())
+    # print("Saving to: {}".format(fn))
+    # table.to_csv(fn)
+    parser.set_defaults(func=cmd_collect)
+    return parser
 
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
@@ -114,16 +159,12 @@ if __name__ == '__main__':
     Complete description of the runtime of the script, what it does and how it
     should be used
     """)
-    parser.add_argument("-s", "--symbol", action="append")
-    parser.add_argument("-g", "--group", action="append",
-                        choices=["faves", "dji"])
-    parser.add_argument("-c", "--cache", action="store_true",
-                        help="cache loaded data to reduce API queries")
+
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
-    parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
-                        help="output file format. default: {}".format(
-                            DEFAULT_FILE_FORMAT))
+
+    subparsers = parser.add_subparsers()
+    scan_parser = add_subparser_collect(subparsers)
 
     args = parser.parse_args()
 
@@ -131,21 +172,7 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
-    symbols = args.symbol if args.symbol else []
-    if not args.group:
-        if len(symbols) == 0:
-            raise ValueError("No symbols or groups provided")
-    elif "faves" in args.group:
-        symbols += faves_components
-    elif "dji" in args.group:
-        symbols += dji_components
-
-    table = pd.DataFrame(generate_stats(symbols), index=symbols)
+    table = args.func(args)
 
     # Print
     print(table)
-
-    # Save to file
-    fn = args.out.format(date=datetime.date.today())
-    print("Saving to: {}".format(fn))
-    table.to_csv(fn)

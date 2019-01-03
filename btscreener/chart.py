@@ -155,6 +155,7 @@ class SupertrendAD(bt.Indicator):
         "accumulation",
         "resistance",
         "support",
+        "breakout",
     )
 
 
@@ -210,11 +211,22 @@ class SummaryStrategy(bt.Strategy):
     def __init__(self):
         self.stad = SupertrendAD(self.data0)
 
+    def get_breakout(self):
+        was_below_resistance = self.data0.close[-1] < self.stad.lines.resistance[-1]
+        was_above_support = self.data0.close[-1] > self.stad.lines.support[-1]
+        is_above_resistance = self.data0.close[0] > self.stad.lines.resistance[0]
+        is_below_support = self.data0.close[0] < self.stad.lines.support[0]
+        was_in_zone = was_below_resistance and was_above_support
+        is_long = is_above_resistance and was_in_zone
+        is_short = is_below_support and was_in_zone
+        return 1 if is_long else (-1 if is_short else 0)
+
     def get_summary(self):
         return pd.Series(OrderedDict([
             ("trend", float(self.stad.st.lines.trend[0])),
             ("support", float(self.stad.lines.support[0])),
             ("resistance", float(self.stad.lines.resistance[0])),
+            ("breakout", self.get_breakout()),
             ("prev_close", float(self.data0.close[-1])),
             ("close", float(self.data0.close[0])),
             ("open", float(self.data0.open[0])),

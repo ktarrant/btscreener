@@ -282,9 +282,6 @@ def add_subparser_scan(subparsers):
         # use shortest range for scan mode
         hist = load_historical(args.symbol, range='1m')
         table = run_backtest(hist)
-        print("{}\n".format(args.symbol) + "-" * 8)
-        for key in table.index:
-            print("{:32}:{}".format(key, table.loc[key]))
         return table
 
     parser = subparsers.add_parser("scan", description="""
@@ -322,6 +319,7 @@ def add_subparser_plot(subparsers):
                         help="chart range, default: 1y")
     parser.set_defaults(func=cmd_plot)
     return parser
+
 # -----------------------------------------------------------------------------
 # RUNTIME PROCEDURE
 # -----------------------------------------------------------------------------
@@ -347,3 +345,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logLevel)
 
     table = args.func(args)
+
+    print("{}\n".format(args.symbol) + "-" * 8)
+    for key in table.index:
+        print("{:32}:{}".format(key, table.loc[key]))

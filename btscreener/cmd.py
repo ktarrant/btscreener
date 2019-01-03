@@ -29,6 +29,7 @@ import pandas as pd
 from iex import (add_subparser_historical, add_subparser_calendar,
     load_historical, load_calendar
 )
+from chart import add_subparser_scan, add_subparser_plot
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -130,7 +131,9 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers()
 
-    iex_parser = subparsers.add_parser("iex", help="Loads and saves data from IEX finance")
+    iex_parser = subparsers.add_parser("iex", help="""
+    Loads and saves data from IEX finance
+    """)
     iex_subparsers = iex_parser.add_subparsers()
 
     hist_parser = add_subparser_historical(iex_subparsers)
@@ -138,6 +141,14 @@ if __name__ == '__main__':
 
     cal_parser = add_subparser_calendar(iex_subparsers)
     cal_parser.set_defaults(func=load_cached_calendar)
+
+    chart_parser = subparsers.add_parser("chart", help="""
+    Runs backtests against OHLC data using techinical indicators
+    """)
+    chart_subparsers = chart_parser.add_subparsers()
+
+    add_subparser_scan(chart_subparsers)
+    add_subparser_plot(chart_subparsers)
 
     args = parser.parse_args()
 

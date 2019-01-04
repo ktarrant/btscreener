@@ -21,6 +21,7 @@ Visualize the results of scans and analysis
 
 # stdlib imports -------------------------------------------------------
 import logging
+import datetime
 
 # Third-party imports -----------------------------------------------
 import plotly.plotly as py
@@ -87,12 +88,12 @@ def create_annotations(scan_result, pct_table, level="resistance"):
     ]
 
 # FUNCTION CATEGORY 1 -----------------------------------------
-def create_master_table(input, output, scan_result):
+def create_master_table(group, output, scan_result):
     """
     Creates a giant table from the scan result
 
     Args:
-        input (str): name of input file
+        input (str): name of group to collect
         output (str): format of output file
         scan_result (pd.DataFrame): table to plot
 
@@ -100,7 +101,8 @@ def create_master_table(input, output, scan_result):
         figure
     """
     # TODO: the third "by" should probably be the TDS#
-    df = scan_result.sort_values(by=["breakout", "trend", "wick",
+    df = scan_result.reset_index()
+    df = df.sort_values(by=["breakout", "trend", "wick",
                                      "nextEPSReportDate", "nextExDate"],
                                  ascending=False)#[False, False])
     bgcolor = lambda row: (
@@ -109,10 +111,9 @@ def create_master_table(input, output, scan_result):
         COLOR_BULLISH_LIGHT if row.trend == 1.0 else (
         COLOR_BEARISH_LIGHT if row.trend == -1.0 else (
         COLOR_NEUTRAL_LIGHT)))))
-    df["symbol"] = df[df.columns[0]]
     df["BgColor"] = df[["trend", "breakout"]].apply(bgcolor, axis=1)
     dcols = [
-        "symbol",
+        "index",
         "trend", "support", "resistance", "breakout",
         "close", "wick",
         "nextEPSReportDate", "lastDividend", "nextExDate",
@@ -125,10 +126,10 @@ def create_master_table(input, output, scan_result):
                    fill=dict(color=[df.BgColor]),
                    align=['left'] * 5))
 
-    layout = dict(title="{} ({})".format(input, datetime.date.today()))
+    layout = dict(title="{} ({})".format(group, datetime.date.today()))
     data = [trace]
     figure = dict(data=data, layout=layout)
-    fn = output.format(input=input)
+    fn = output.format(group=group)
     py.plot(figure, filename=fn)
     return scan_result
 
@@ -225,21 +226,18 @@ def add_subparser_table(subparsers):
         Created subparser object
     """
     def cmd_table(args):
-        try:
-            scan_result = pd.read_csv(args.input)
-        except IOError:
-            symbol_list = load_symbol_list(groups=[args.input])
-            scan_result = run_collection(symbol_list)
-        fig = create_master_table(args.input, args.output, scan_result)
+        symbol_list = load_symbol_list(groups=[args.group])
+        scan_result = run_collection(symbol_list)
+        fig = create_master_table(args.group, args.output, scan_result)
         return fig
 
     parser = subparsers.add_parser("table", description="""
     Creates a plotly table from a scan table
     """)
-    parser.add_argument("-i", "--input",
-                        help="input scan file to visualize or group to collect")
+    parser.add_argument("-g", "--group",
+                        help="group name to pass to collector")
     parser.set_defaults(func=cmd_table,
-                        output="{input}-table-latest")
+                        output="{group}-table-latest")
     return parser
 
 # -----------------------------------------------------------------------------

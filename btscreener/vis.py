@@ -128,7 +128,7 @@ def create_master_table(input, output, scan_result):
     layout = dict(title="{} ({})".format(input, datetime.date.today()))
     data = [trace]
     figure = dict(data=data, layout=layout)
-    fn = output.format(input)
+    fn = output.format(input=input)
     py.plot(figure, filename=fn)
     return scan_result
 

@@ -222,11 +222,14 @@ class SummaryStrategy(bt.Strategy):
         return 1 if is_long else (-1 if is_short else 0)
 
     def get_summary(self):
+        wick_buy = not pd.isnull(self.stad.ad.lines.buy[0])
+        wick_sell = not pd.isnull(self.stad.ad.lines.sell[0])
         return pd.Series(OrderedDict([
             ("trend", float(self.stad.st.lines.trend[0])),
             ("support", float(self.stad.lines.support[0])),
             ("resistance", float(self.stad.lines.resistance[0])),
             ("breakout", self.get_breakout()),
+            ("wick", 1 if wick_buy else (-1 if wick_sell else 0)),
             ("prev_close", float(self.data0.close[-1])),
             ("close", float(self.data0.close[0])),
             ("open", float(self.data0.open[0])),
@@ -301,7 +304,8 @@ def add_subparser_scan(subparsers):
     """)
     parser.add_argument("--symbol", type=str, default="aapl",
                         help="stock ticker to look up")
-    parser.set_defaults(func=cmd_scan)
+    parser.set_defaults(func=cmd_scan,
+                        output="{today}_{symbol}_scan.csv")
     return parser
 
 def add_subparser_plot(subparsers):
@@ -329,7 +333,8 @@ def add_subparser_plot(subparsers):
                         help="stock ticker to look up")
     parser.add_argument("-r", "--range", type=str, default="1y",
                         help="chart range, default: 1y")
-    parser.set_defaults(func=cmd_plot)
+    parser.set_defaults(func=cmd_plot,
+                        output="{today}_{symbol}_plot.csv")
     return parser
 
 # -----------------------------------------------------------------------------
@@ -337,7 +342,7 @@ def add_subparser_plot(subparsers):
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     import argparse
-
+    import datetime
 
     parser = argparse.ArgumentParser(description="""
     Complete description of the runtime of the script, what it does and how it
@@ -351,6 +356,7 @@ if __name__ == '__main__':
     plot_parser = add_subparser_plot(subparsers)
 
     args = parser.parse_args()
+    args.today = datetime.date.today()
 
     # configure logging
     logLevel = logging.DEBUG if args.verbose else logging.INFO
@@ -361,3 +367,5 @@ if __name__ == '__main__':
     print("{}\n".format(args.symbol) + "-" * 8)
     for key in table.index:
         print("{:32}:{}".format(key, table.loc[key]))
+
+    table.to_csv(args.output.format(**vars(args)))

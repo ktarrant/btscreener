@@ -200,7 +200,8 @@ def add_subparser_historical(subparsers):
     hist_parser.add_argument("symbol", type=str, help="stock ticker to look up")
     hist_parser.add_argument("-r", "--range", type=str, default="1m",
                              help="lookback period, default: 1m")
-    hist_parser.set_defaults(func=cmd_hist)
+    hist_parser.set_defaults(func=cmd_hist,
+                             output="{today}_{symbol}_{range}_ohlc.csv")
     return hist_parser
 
 
@@ -222,7 +223,8 @@ def add_subparser_calendar(subparsers):
     """)
     earnings_parser.add_argument("symbol", type=str,
                                  help="stock ticker to look up")
-    earnings_parser.set_defaults(func=cmd_calendar)
+    earnings_parser.set_defaults(func=cmd_calendar,
+                                 output="{today}_{symbol}_calendar.csv")
     return earnings_parser
 
 # -----------------------------------------------------------------------------
@@ -236,6 +238,8 @@ if __name__ == '__main__':
     """)
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="use verbose logging")
+    parser.add_argument("-o", "--output",
+                        help="output file format")
 
     subparsers = parser.add_subparsers()
 
@@ -243,9 +247,17 @@ if __name__ == '__main__':
     add_subparser_calendar(subparsers)
 
     args = parser.parse_args()
+    args.today = datetime.date.today()
 
     # configure logging
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
-    df = args.func(args)
-    print(df)
+
+    # execute the function
+    table = args.func(args)
+
+    # print and save the result for the user
+    print(table)
+    fn = args.output.format(**vars(args))
+    logger.info("Saving to: {}".format(fn))
+    table.to_csv(fn)

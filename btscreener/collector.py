@@ -120,7 +120,7 @@ def generate_stats(index, load_historical=load_historical):
         yield combined
 
 
-def run_collection(symbols, load_historical=load_historical, **kwargs):
+def run_collection(symbols, load_historical=load_historical):
     table = pd.DataFrame(
         generate_stats(symbols, load_historical=load_historical),
         index=symbols)
@@ -151,6 +151,9 @@ def add_subparser_collect(subparsers):
         Created subparser object
     """
     def cmd_collect(args):
+        groups = args.group if args.group else []
+        groups += ["{}s".format(len(args.symbol))] if args.symbol else []
+        args.group_label = "-".join(groups)
         symbols = load_symbol_list(groups=args.group if args.group else [],
                                    symbols=args.symbol if args.symbol else [])
         return run_collection(symbols)
@@ -162,7 +165,8 @@ def add_subparser_collect(subparsers):
     parser.add_argument("-g", "--group", action="append",
                         choices=["faves", "dji", "sp"])
 
-    parser.set_defaults(func=cmd_collect)
+    parser.set_defaults(func=cmd_collect,
+                        output="{today}_[{group_label}].csv")
     return parser
 
 # -----------------------------------------------------------------------------
@@ -184,12 +188,15 @@ if __name__ == '__main__':
     scan_parser = add_subparser_collect(subparsers)
 
     args = parser.parse_args()
+    args.today = datetime.date.today()
 
     # configure logging
     logLevel = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logLevel)
 
+    # execute the function
     table = args.func(args)
 
-    # Print
+    # print and save the result for the user
     print(table)
+    table.to_csv(args.output.format(**vars(args)))

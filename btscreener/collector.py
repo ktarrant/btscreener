@@ -51,7 +51,7 @@ faves_components = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
                     "x", "cat", "ba", "luv", # trade wars
                     "tsla", "snap", "twtr", "spot",  # unicorns
                     "tlry", "cgc", "stz", # pot
-                    "pfe", # healthcare
+                    "pfe", "jnj", # healthcare
                     ]
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """

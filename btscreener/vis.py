@@ -128,7 +128,7 @@ def create_master_table(input, output, scan_result):
     layout = dict(title="{} ({})".format(input, datetime.date.today()))
     data = [trace]
     figure = dict(data=data, layout=layout)
-    fn = output.format(input=input)
+    fn = output.format(input)
     py.plot(figure, filename=fn)
     return scan_result
 
@@ -211,7 +211,7 @@ def add_subparser_bar(subparsers):
     parser.add_argument("-i", "--input",
                         help="input scan file to visualize or group to collect")
     parser.set_defaults(func=cmd_bar,
-                        output="{input}_bar")
+                        output="{input}-bar-latest")
     return parser
 
 def add_subparser_table(subparsers):
@@ -239,7 +239,7 @@ def add_subparser_table(subparsers):
     parser.add_argument("-i", "--input",
                         help="input scan file to visualize or group to collect")
     parser.set_defaults(func=cmd_table,
-                        output="{input}_table")
+                        output="{input}-table-latest")
     return parser
 
 # -----------------------------------------------------------------------------

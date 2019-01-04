@@ -34,10 +34,13 @@ import numpy as np
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
-COLOR_BULL_UP = "#1b9164"
-COLOR_BULL_DOWN = "#e87d3d"
-COLOR_BEAR_UP = "#41b2a0"
-COLOR_BEAR_DOWN = "#e44641"
+COLOR_NEUTRAL_LIGHT = '#E6E6FF'
+COLOR_NEUTRAL_MID = '#CCCCFF'
+COLOR_NEUTRAL_DARK = '#4D0066'
+COLOR_BULLISH_BOLD = '#99E699'
+COLOR_BULLISH_LIGHT = '#CCFFDD'
+COLOR_BEARISH_BOLD = '#FF8080'
+COLOR_BEARISH_LIGHT = ' #FFCCCC'
 
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
@@ -94,13 +97,30 @@ def create_master_table(scan_result):
     Returns:
         figure
     """
-    df = scan_result
+    # TODO: the third "by" should probably be the TDS#
+    df = scan_result.sort_values(by=["breakout", "trend", "wick",
+                                     "nextEPSReportDate", "nextExDate"],
+                                 ascending=False)#[False, False])
+    bgcolor = lambda row: (
+        COLOR_BULLISH_BOLD if row.breakout == 1.0 else (
+        COLOR_BEARISH_BOLD if row.breakout == -1.0 else (
+        COLOR_BULLISH_LIGHT if row.trend == 1.0 else (
+        COLOR_BEARISH_LIGHT if row.trend == -1.0 else (
+        COLOR_NEUTRAL_LIGHT)))))
+    df["symbol"] = df[df.columns[0]]
+    df["BgColor"] = df[["trend", "breakout"]].apply(bgcolor, axis=1)
+    dcols = [
+        "symbol",
+        "trend", "support", "resistance", "breakout",
+        "close", "wick",
+        "nextEPSReportDate", "lastDividend", "nextExDate",
+    ]
     trace = go.Table(
-        header=dict(values=list(df.columns),
-                    fill=dict(color='#C2D4FF'),
+        header=dict(values=dcols,
+                    fill=dict(color=COLOR_NEUTRAL_MID),
                     align=['left'] * 5),
-        cells=dict(values=[df[col] for col in df.columns],
-                   fill=dict(color='#F5F8FF'),
+        cells=dict(values=[df[col] for col in dcols],
+                   fill=dict(color=[df.BgColor]),
                    align=['left'] * 5))
 
     layout = dict()

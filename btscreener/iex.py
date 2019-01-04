@@ -172,7 +172,10 @@ def load_calendar(symbol):
         dividends = None
     if dividends is not None:
         last_exDate = max(dividends.index)
-        last_dividend = dividends.loc[last_exDate, "amount"]
+        try:
+            last_dividend = next(iter(dividends.at[last_exDate, "amount"]))
+        except TypeError:
+            last_dividend = dividends.at[last_exDate, "amount"]
         next_exDate = estimate_next(earnings.index)
     else:
         last_exDate = None

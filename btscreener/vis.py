@@ -25,11 +25,11 @@ import logging
 # Third-party imports -----------------------------------------------
 import plotly.plotly as py
 import plotly.graph_objs as go
-
+import pandas as pd
 import numpy as np
 
 # Our own imports ---------------------------------------------------
-
+from collector import load_symbol_list, run_collection
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -87,11 +87,13 @@ def create_annotations(scan_result, pct_table, level="resistance"):
     ]
 
 # FUNCTION CATEGORY 1 -----------------------------------------
-def create_master_table(scan_result):
+def create_master_table(input, output, scan_result):
     """
     Creates a giant table from the scan result
 
     Args:
+        input (str): name of input file
+        output (str): format of output file
         scan_result (pd.DataFrame): table to plot
 
     Returns:
@@ -123,10 +125,12 @@ def create_master_table(scan_result):
                    fill=dict(color=[df.BgColor]),
                    align=['left'] * 5))
 
-    layout = dict()
+    layout = dict(title="{} ({})".format(input, datetime.date.today()))
     data = [trace]
-    fig = dict(data=data, layout=layout)
-    return fig
+    figure = dict(data=data, layout=layout)
+    fn = output.format(input=input)
+    py.plot(figure, filename=fn)
+    return scan_result
 
 def create_bar_graph(scan_result):
     """
@@ -147,25 +151,25 @@ def create_bar_graph(scan_result):
     pct_res = off_res.divide(scan_result.resistance, axis=0)
     final_bulls = pct_sup[scan_result.trend == 1.0].sort_values(by='close')
     final_bears = pct_res[scan_result.trend == -1.0].sort_values(by='close')
-
-    trace_bulls = go.Ohlc(
-                    x=final_bulls.index,
-                    open=final_bulls.prev_close,
-                    high=final_bulls.resistance,
-                    low=[0] * len(final_bulls.index),
-                    close=final_bulls.close,
-                    name="bullish",
-                    increasing=dict(line=dict(color=COLOR_BULL_UP)),
-                    decreasing=dict(line=dict(color=COLOR_BULL_DOWN)))
-    trace_bears = go.Ohlc(
-                    x=final_bears.index,
-                    open=final_bears.prev_close,
-                    high=[0] * len(final_bears.index),
-                    low=final_bears.support,
-                    close=final_bears.close,
-                    name="bearish",
-                    increasing=dict(line=dict(color=COLOR_BEAR_UP)),
-                    decreasing=dict(line=dict(color=COLOR_BEAR_DOWN)))
+    #
+    # trace_bulls = go.Ohlc(
+    #                 x=final_bulls.index,
+    #                 open=final_bulls.prev_close,
+    #                 high=final_bulls.resistance,
+    #                 low=[0] * len(final_bulls.index),
+    #                 close=final_bulls.close,
+    #                 name="bullish",
+    #                 increasing=dict(line=dict(color=COLOR_BULL_UP)),
+    #                 decreasing=dict(line=dict(color=COLOR_BULL_DOWN)))
+    # trace_bears = go.Ohlc(
+    #                 x=final_bears.index,
+    #                 open=final_bears.prev_close,
+    #                 high=[0] * len(final_bears.index),
+    #                 low=final_bears.support,
+    #                 close=final_bears.close,
+    #                 name="bearish",
+    #                 increasing=dict(line=dict(color=COLOR_BEAR_UP)),
+    #                 decreasing=dict(line=dict(color=COLOR_BEAR_DOWN)))
 
     bull_annotations = create_annotations(scan_result, final_bulls)
     bear_annotations = create_annotations(scan_result, final_bears, level="support")
@@ -179,7 +183,7 @@ def create_bar_graph(scan_result):
         font=dict(family="Overpass", size=12),
         annotations=bull_annotations+bear_annotations,
     )
-    data = [trace_bulls, trace_bears]
+    data = [] # [trace_bulls, trace_bears]
 
     fig = go.Figure(data=data, layout=layout)
     return fig
@@ -204,6 +208,8 @@ def add_subparser_bar(subparsers):
     parser = subparsers.add_parser("bar", description="""
     Creates a bar chart from a scan table
     """)
+    parser.add_argument("-i", "--input",
+                        help="input scan file to visualize or group to collect")
     parser.set_defaults(func=cmd_bar,
                         output="{input}_bar")
     return parser
@@ -219,14 +225,19 @@ def add_subparser_table(subparsers):
         Created subparser object
     """
     def cmd_table(args):
-        scan_result = pd.read_csv(args.input)
-        fig = create_master_table(scan_result)
-        fig["layout"]["title"] = args.input
+        try:
+            scan_result = pd.read_csv(args.input)
+        except IOError:
+            symbol_list = load_symbol_list(groups=[args.input])
+            scan_result = run_collection(symbol_list)
+        fig = create_master_table(args.input, args.output, scan_result)
         return fig
 
     parser = subparsers.add_parser("table", description="""
     Creates a plotly table from a scan table
     """)
+    parser.add_argument("-i", "--input",
+                        help="input scan file to visualize or group to collect")
     parser.set_defaults(func=cmd_table,
                         output="{input}_table")
     return parser
@@ -242,8 +253,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
     Visualizes a scan generated by the collector
     """)
-    parser.add_argument("-i", "--input",
-                        help="input scan to visualize")
     parser.add_argument("-o", "--output",
                         help="output name format")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -262,6 +271,5 @@ if __name__ == '__main__':
     logging.basicConfig(level=logLevel)
 
     # create a figure from the scan and plot it
-    figure = args.func(args)
-    fn = args.output.format(**vars(args))
-    py.plot(figure, filename=fn)
+    table = args.func(args)
+

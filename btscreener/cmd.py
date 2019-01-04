@@ -26,12 +26,10 @@ import datetime
 import pandas as pd
 
 # Our own imports ---------------------------------------------------
-from iex import (add_subparser_historical, add_subparser_calendar,
-    load_historical, load_calendar
-)
+from iex import add_subparser_historical, add_subparser_calendar
 from chart import add_subparser_scan, add_subparser_plot
-from collector import add_subparser_collect, load_symbol_list, run_collection
-
+from collector import add_subparser_collect
+from vis import add_subparser_table
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------
@@ -99,6 +97,13 @@ if __name__ == '__main__':
     collector_subparsers = collector_parser.add_subparsers()
 
     collect_parser = add_subparser_collect(collector_subparsers)
+
+    vis_parser = subparsers.add_parser("vis", help="""
+    Collects summary data from a batch of symbols
+    """)
+    vis_subparsers = vis_parser.add_subparsers()
+
+    table_parser = add_subparser_table(vis_subparsers)
 
     args = parser.parse_args()
     args.today = datetime.date.today()

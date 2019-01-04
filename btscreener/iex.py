@@ -114,7 +114,10 @@ def load_earnings(symbol):
     url = URL_EARNINGS.format(symbol=symbol)
     logger.info("Loading: '{}'".format(url))
     result = requests.get(url).json()
-    df = pd.DataFrame(result["earnings"])
+    try:
+        df = pd.DataFrame(result["earnings"])
+    except KeyError:
+        return None
     df[["EPSReportDate", "fiscalEndDate"]] = (
         df[["EPSReportDate", "fiscalEndDate"]].applymap(parsedate))
     return df.set_index("EPSReportDate")
@@ -154,7 +157,6 @@ def load_calendar(symbol):
     today = datetime.date.today()
 
     earnings = load_earnings(symbol)
-    dividends = load_dividends(symbol)
     if earnings is not None:
         last_reportDate = max(earnings.index)
         next_reportDate = estimate_next(earnings.index)
@@ -162,6 +164,12 @@ def load_calendar(symbol):
         last_reportDate = None
         next_reportDate = None
 
+    try:
+        dividends = load_dividends(symbol)
+    except ValueError as e:
+        logger.error("Failed to load dividends for {}".format(symbol))
+        logger.error(str(e))
+        dividends = None
     if dividends is not None:
         last_exDate = max(dividends.index)
         last_dividend = dividends.loc[last_exDate, "amount"]

@@ -334,7 +334,7 @@ def add_subparser_plot(subparsers):
     parser.add_argument("-r", "--range", type=str, default="1y",
                         help="chart range, default: 1y")
     parser.set_defaults(func=cmd_plot,
-                        output="{today}_{symbol}_plot.csv")
+                        output="{today}_{symbol}_scan.csv")
     return parser
 
 # -----------------------------------------------------------------------------

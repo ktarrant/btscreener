@@ -23,11 +23,13 @@ run into a combined data table keyed on symbol.
 # stdlib imports -------------------------------------------------------
 import logging
 import os
-from collections import OrderedDict
+from urllib.request import urlopen
+import ssl
+
 
 # Third-party imports -----------------------------------------------
-import backtrader as bt
 import pandas as pd
+from bs4 import BeautifulSoup
 
 # Our own imports ---------------------------------------------------
 from btscreener.chart import run_backtest
@@ -72,19 +74,38 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------------------
 
 # SYMBOL LOADERS -----------------------------------------
-def load_sp_components(fn="sp500_weights.csv"):
-    dirname = os.path.dirname(__file__)
-    sp500_weights_src = os.path.join(dirname, fn)
-    sp500_weights = pd.read_csv(sp500_weights_src)
-    return list(sp500_weights.Symbol)
+def load_sp500_weights():
+    cache_fn = "sp500_weights.csv"
+    source_url = "https://www.slickcharts.com/sp500"
+    try:
+        sp500_weights = pd.read_csv(cache_fn)
+    except IOError:
+        # "spx_page.html" is an html page manually saved from the source of
+        # https://www.slickcharts.com/sp500
+        with open("spx_page.html") as fobj:
+            soup = BeautifulSoup(fobj.read())
+
+        columns = [th.text.strip() for th in soup.thead.find_all('th')]
+        rows = [[td.text.strip() for td in tr.find_all("td")]
+                for tr in soup.tbody.find_all("tr")]
+        df = pd.DataFrame(rows, columns=columns)
+        df.Change = df.Change.apply(lambda s: float(s.split("  ")[0]))
+        df.Price = df.Price.apply(lambda s: float(s.replace(",", "")))
+        df.Weight = df.Weight.apply(float)
+        df.to_csv(cache_fn)
+        sp500_weights = df
+
+    return sp500_weights
 
 # COLLECTION GENERATOR -----------------------------------------
-def generate_stats(index):
+def generate_stats(index, load_historical=load_historical):
     """
     Collects chart and calendar data for each ticker in the index and returns
     a DataFrame containing the tabulated results
     Args:
         index (list-like): Index of tickers to use
+        load_historical (func): method that takes a symbol argument and returns
+            a pd.DataFrame containing OHLC data for that symbol.
 
     Yields:
         OrderedDict: A dict-like row for an array-like, with the first key
@@ -99,8 +120,10 @@ def generate_stats(index):
         yield combined
 
 
-def run_collection(symbols, **kwargs):
-    table = pd.DataFrame(generate_stats(symbols), index=symbols)
+def run_collection(symbols, load_historical=load_historical, **kwargs):
+    table = pd.DataFrame(
+        generate_stats(symbols, load_historical=load_historical),
+        index=symbols)
     return table
 
 # ARGPARSE CONFIGURATION  -----------------------------------------
@@ -110,7 +133,8 @@ def load_symbol_list(groups=["faves"], symbols=[]):
     elif "dji" in groups:
         symbols += dji_components
     elif "sp" in groups:
-        symbols += load_sp_components()
+        weights = load_sp500_weights()
+        symbols += list(weights.Symbol)
     if len(symbols) == 0:
         raise ValueError("No symbols or groups provided")
     # make sure it's unique
@@ -137,14 +161,7 @@ def add_subparser_collect(subparsers):
     parser.add_argument("-s", "--symbol", action="append")
     parser.add_argument("-g", "--group", action="append",
                         choices=["faves", "dji", "sp"])
-    # parser.add_argument("-o", "--out", default=DEFAULT_FILE_FORMAT,
-    #                     help="output file format. default: {}".format(
-    #                         DEFAULT_FILE_FORMAT))
 
-    # # Save to file
-    # fn = args.out.format(date=datetime.date.today())
-    # print("Saving to: {}".format(fn))
-    # table.to_csv(fn)
     parser.set_defaults(func=cmd_collect)
     return parser
 

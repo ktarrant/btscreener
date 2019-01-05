@@ -22,9 +22,7 @@ run into a combined data table keyed on symbol.
 
 # stdlib imports -------------------------------------------------------
 import logging
-import os
-from urllib.request import urlopen
-import ssl
+from multiprocessing import Pool
 
 
 # Third-party imports -----------------------------------------------
@@ -76,7 +74,6 @@ logger = logging.getLogger(__name__)
 # SYMBOL LOADERS -----------------------------------------
 def load_sp500_weights():
     cache_fn = "sp500_weights.csv"
-    source_url = "https://www.slickcharts.com/sp500"
     try:
         sp500_weights = pd.read_csv(cache_fn)
     except IOError:
@@ -98,32 +95,28 @@ def load_sp500_weights():
     return sp500_weights
 
 # COLLECTION GENERATOR -----------------------------------------
-def generate_stats(index, load_historical=load_historical):
+def create_row(symbol):
     """
-    Collects chart and calendar data for each ticker in the index and returns
-    a DataFrame containing the tabulated results
+    Collects chart and calendar data for a ticker and returns a DataFrame
+    containing the combined results
+
     Args:
-        index (list-like): Index of tickers to use
-        load_historical (func): method that takes a symbol argument and returns
-            a pd.DataFrame containing OHLC data for that symbol.
+        symbol (str): ticker to look up
 
     Yields:
         OrderedDict: A dict-like row for an array-like, with the first key
             being "symbol".
     """
-    for symbol in index:
-        logger.info("Collecting stats for symbol: {}".format(symbol))
-        hist = load_historical(symbol)
-        chart_stats = run_backtest(hist)
-        calendar_stats = load_calendar(symbol)
-        combined = pd.concat([chart_stats, calendar_stats])
-        yield combined
+    logger.info("Collecting stats for symbol: {}".format(symbol))
+    hist = load_historical(symbol)
+    chart_stats = run_backtest(hist)
+    calendar_stats = load_calendar(symbol)
+    combined = pd.concat([chart_stats, calendar_stats])
+    return combined
 
-
-def run_collection(symbols, load_historical=load_historical):
-    table = pd.DataFrame(
-        generate_stats(symbols, load_historical=load_historical),
-        index=symbols)
+def run_collection(symbols, pool_size=4):
+    p = Pool(pool_size)
+    table = pd.DataFrame(p.map(create_row, symbols), index=symbols)
     return table
 
 # ARGPARSE CONFIGURATION  -----------------------------------------

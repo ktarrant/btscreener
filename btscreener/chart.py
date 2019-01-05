@@ -244,6 +244,13 @@ class SummaryStrategy(bt.Strategy):
         is_short = is_below_support and was_in_zone
         return 1 if is_long else (-1 if is_short else 0)
 
+    def get_flip(self):
+        is_long = (self.stad.st.lines.trend[0] == 1) and (
+            self.stad.st.lines.trend[-1] != 1)
+        is_short = (self.stad.st.lines.trend[0] == -1) and (
+            self.stad.st.lines.trend[-1] != -1)
+        return 1 if is_long else (-1 if is_short else 0)
+
     def get_summary(self):
         wick_buy = not pd.isnull(self.stad.ad.lines.buy[0])
         wick_sell = not pd.isnull(self.stad.ad.lines.sell[0])
@@ -252,6 +259,7 @@ class SummaryStrategy(bt.Strategy):
             ("support", float(self.stad.lines.support[0])),
             ("resistance", float(self.stad.lines.resistance[0])),
             ("breakout", self.get_breakout()),
+            ("flip", self.get_flip()),
             ("wick", 1 if wick_buy else (-1 if wick_sell else 0)),
             ("prev_close", float(self.data0.close[-1])),
             ("close", float(self.data0.close[0])),
@@ -311,7 +319,7 @@ def add_subparser_scan(subparsers):
     parser = subparsers.add_parser("scan", description="""
     runs a passive backtest on a very short window to get latest indicator data
     """)
-    parser.add_argument("--symbol", type=str, default="aapl",
+    parser.add_argument("-s", "--symbol", type=str, default="aapl",
                         help="stock ticker to look up")
     parser.set_defaults(func=cmd_scan,
                         output="{today}_{symbol}_scan.csv")
@@ -338,7 +346,7 @@ def add_subparser_plot(subparsers):
     parser = subparsers.add_parser("plot", description="""
     plots a window of data using backtrader matplotlib magic
     """)
-    parser.add_argument("--symbol", type=str, default="aapl",
+    parser.add_argument("-s", "--symbol", type=str, default="aapl",
                         help="stock ticker to look up")
     parser.add_argument("-r", "--range", type=str, default="1y",
                         help="chart range, default: 1y")

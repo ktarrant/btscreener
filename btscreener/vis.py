@@ -104,7 +104,7 @@ def create_master_table(group, output, scan_result):
     df = scan_result.reset_index()
     df.support = df.support.round(2)
     df.resistance = df.resistance.round(2)
-    df = df.sort_values(by=["breakout", "trend", "wick",
+    df = df.sort_values(by=["breakout", "flip", "trend",
                             "nextEPSReportDate", "nextExDate",
                             "index"],
                         ascending=False)#[False, False])
@@ -117,7 +117,8 @@ def create_master_table(group, output, scan_result):
     df["BgColor"] = df[["trend", "breakout"]].apply(bgcolor, axis=1)
     dcols = [
         "index",
-        "trend", "support", "resistance", "breakout",
+        "trend", "flip", "breakout",
+        "support", "resistance",
         "close", "wick",
         "nextEPSReportDate", "lastDividend", "nextExDate",
     ]

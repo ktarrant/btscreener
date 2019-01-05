@@ -30,7 +30,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 # Our own imports ---------------------------------------------------
-from btscreener.chart import run_backtest
+from btscreener.chart import run_backtest, SCAN_RANGE
 from iex import load_calendar, load_historical
 
 # -----------------------------------------------------------------------------
@@ -108,7 +108,7 @@ def create_row(symbol):
             being "symbol".
     """
     logger.info("Collecting stats for symbol: {}".format(symbol))
-    hist = load_historical(symbol)
+    hist = load_historical(symbol, range=SCAN_RANGE)
     chart_stats = run_backtest(hist)
     calendar_stats = load_calendar(symbol)
     combined = pd.concat([chart_stats, calendar_stats])

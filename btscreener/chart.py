@@ -39,7 +39,8 @@ from btscreener.iex import load_historical
 # -----------------------------------------------------------------------------
 # CONSTANTS
 # -----------------------------------------------------------------------------
-
+# Minimum range for a scan. (1m is too short to get the trend right)
+SCAN_RANGE = "3m"
 
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
@@ -62,7 +63,8 @@ class Supertrend(bt.Indicator):
 
     def __init__(self):
         self.atr = bt.indicators.AverageTrueRange(period=self.p.period)
-        self.highest = bt.indicators.Highest(self.data.high, period=self.p.period)
+        self.highest = bt.indicators.Highest(
+            self.data.high, period=self.p.period)
         self.lowest = bt.indicators.Lowest(self.data.low, period=self.p.period)
         self.hl2 = (self.highest.lines.highest + self.lowest.lines.lowest) / 2.0
         self.up = self.hl2 - self.p.factor * self.atr
@@ -106,12 +108,13 @@ class Supertrend(bt.Indicator):
 class WickReversalSignal(bt.Indicator):
     """
     Pattern Summary
-    1. The body is used to determine the size of the reversal wick. A wick that is between 2.5 to 3.5 times larger than
+    1. The body is used to determine the size of the reversal wick. A wick that
+        is between 2.5 to 3.5 times larger than
     the size of the body is ideal.
-    2. For a bullish reversal wick to exist, the close of the bar should fall within the top 35 percent of the overall
-    range of the candle.
-    3. For a bearish reversal wick to exist, the close of the bar should fall within the bottom 35 percent of the
-    overall range of the candle.
+    2. For a bullish reversal wick to exist, the close of the bar should fall
+        within the top 35 percent of the overall range of the candle.
+    3. For a bearish reversal wick to exist, the close of the bar should fall
+        within the bottom 35 percent of the overall range of the candle.
     """
 
     lines = (
@@ -138,14 +141,20 @@ class WickReversalSignal(bt.Indicator):
         body_high = bt.Max(self.data.close, self.data.open)
         body_low = bt.Min(self.data.close, self.data.open)
         body_range = body_high - body_low
-        wick_buy = (body_low - self.data.low) >= (self.p.wick_multiplier_min * body_range)
-        wick_sell = (self.data.high - body_high) >= (self.p.wick_multiplier_min * body_range)
-        # be careful, if wick range = 0 then close-low = 0 ; so avoiding divide by zero list this is correct
-        close_percent = (self.data.close - self.data.low) / bt.If(wick_range == 0.0, 0.1, wick_range)
+        wick_buy = (body_low - self.data.low) >= (
+                self.p.wick_multiplier_min * body_range)
+        wick_sell = (self.data.high - body_high) >= (
+                self.p.wick_multiplier_min * body_range)
+        # be careful, if wick range = 0 then close-low = 0 ; so avoiding divide
+        # by zero list this is correct
+        close_percent = (self.data.close - self.data.low) / bt.If(
+            wick_range == 0.0, 0.1, wick_range)
         close_buy = (close_percent >= (1 - self.p.close_percent_max))
         close_sell = (close_percent <= self.p.close_percent_max)
-        self.lines.buy = bt.If(bt.And(wick_buy, close_buy), self.data.low, np.NaN)
-        self.lines.sell = bt.If(bt.And(wick_sell, close_sell), self.data.high, np.NaN)
+        self.lines.buy = bt.If(bt.And(wick_buy, close_buy),
+                               self.data.low, np.NaN)
+        self.lines.sell = bt.If(bt.And(wick_sell, close_sell),
+                                self.data.high, np.NaN)
 
 
 class SupertrendAD(bt.Indicator):
@@ -163,15 +172,25 @@ class SupertrendAD(bt.Indicator):
 
 
     plotlines = dict(
-        distribution=dict(marker='o', markersize=8.0, color='red', fillstyle='top', ls=""),
-        accumulation=dict(marker='o', markersize=8.0, color='green', fillstyle='bottom', ls=""),
+        distribution=dict(marker='o',
+                          markersize=8.0,
+                          color='red',
+                          fillstyle='top',
+                          ls=""),
+        accumulation=dict(marker='o',
+                          markersize=8.0,
+                          color='green',
+                          fillstyle='bottom',
+                          ls=""),
     )
 
     def __init__(self):
         self.st = Supertrend()
         self.ad = WickReversalSignal()
-        self.lines.distribution = bt.If(self.st.lines.trend == 1.0, self.ad.lines.sell, np.NaN)
-        self.lines.accumulation = bt.If(self.st.lines.trend == -1.0, self.ad.lines.buy, np.NaN)
+        self.lines.distribution = bt.If(
+            self.st.lines.trend == 1.0, self.ad.lines.sell, np.NaN)
+        self.lines.accumulation = bt.If(
+            self.st.lines.trend == -1.0, self.ad.lines.buy, np.NaN)
 
     def next(self):
         if self.st.lines.trend[0] == 1.0:
@@ -181,7 +200,8 @@ class SupertrendAD(bt.Indicator):
                 if pd.isnull(self.lines.resistance[-1]):
                     self.lines.resistance[0] = self.data.high[0]
                 else:
-                    self.lines.resistance[0] = max(self.data.high[0], self.lines.resistance[-1])
+                    self.lines.resistance[0] = max(
+                        self.data.high[0], self.lines.resistance[-1])
 
             elif self.st.lines.trend[-1] != 1.0:
                 # we just flipped trends, we don't know resistance yet
@@ -197,7 +217,8 @@ class SupertrendAD(bt.Indicator):
                 if pd.isnull(self.lines.support[-1]):
                     self.lines.support[0] = self.data.low[0]
                 else:
-                    self.lines.support[0] = min(self.data.low[0], self.lines.support[-1])
+                    self.lines.support[0] = min(
+                        self.data.low[0], self.lines.support[-1])
 
             elif self.st.lines.trend[-1] != -1.0:
                 # we just flipped trends, we don't know resistance yet
@@ -212,9 +233,11 @@ class SummaryStrategy(bt.Strategy):
         self.stad = SupertrendAD(self.data0)
 
     def get_breakout(self):
-        was_below_resistance = self.data0.close[-1] < self.stad.lines.resistance[-1]
+        was_below_resistance = (self.data0.close[-1] <
+                                self.stad.lines.resistance[-1])
         was_above_support = self.data0.close[-1] > self.stad.lines.support[-1]
-        is_above_resistance = self.data0.close[0] > self.stad.lines.resistance[0]
+        is_above_resistance = (self.data0.close[0] >
+                               self.stad.lines.resistance[0])
         is_below_support = self.data0.close[0] < self.stad.lines.support[0]
         was_in_zone = was_below_resistance and was_above_support
         is_long = is_above_resistance and was_in_zone
@@ -240,20 +263,6 @@ class SummaryStrategy(bt.Strategy):
 # FUNCTIONS
 # -----------------------------------------------------------------------------
 
-# SETUP HELPERS     -----------------------------------------
-def configure_data(cerebro, table, range="6m"):
-    '''
-    Runs strategy against historical data
-
-    Args:
-        cerebro (bt.Cerebro): cerebro object to configure
-        range (str): range of historical data to configure
-
-    Returns:
-        bt.Cerebro: updated cerebro object
-    '''
-    return cerebro
-
 # FULL PROCESS -----------------------------------------
 def run_backtest(table, cerebro=None):
     '''
@@ -261,7 +270,7 @@ def run_backtest(table, cerebro=None):
 
     Args:
         table (pd.DataFrame): table of OHLC data to backtest
-        cerebro (bt.Cerebro): cerebro object to configure, or None to use default
+        cerebro (bt.Cerebro): cerebro object to configure, or None for default
 
     Returns:
         pd.Series: technical stats for symbol
@@ -295,7 +304,7 @@ def add_subparser_scan(subparsers):
     """
     def cmd_scan(args):
         # use shortest range for scan mode
-        hist = load_historical(args.symbol, range='1m')
+        hist = load_historical(args.symbol, range=SCAN_RANGE)
         table = run_backtest(hist)
         return table
 

@@ -262,7 +262,7 @@ class TDSequential(bt.Indicator):
             else:
                 break
         self.lines.count[0] = tdc
-        self.lines.reversal[0] = -self.ta_base(0) if (abs(tdc) > 7) else 0
+        self.lines.reversal[0] = self.ta_base(0) if (abs(tdc) > 7) else 0
 
 
 class SummaryStrategy(bt.Strategy):

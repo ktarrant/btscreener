@@ -41,7 +41,9 @@ COLOR_NEUTRAL_DARK = '#4D0066'
 COLOR_BULLISH_BOLD = '#99E699'
 COLOR_BULLISH_LIGHT = '#CCFFDD'
 COLOR_BEARISH_BOLD = '#FF8080'
-COLOR_BEARISH_LIGHT = ' #FFCCCC'
+COLOR_BEARISH_LIGHT = '#FFCCCC'
+COLOR_REVERSAL_WARN = "#FFFF80"
+COLOR_REVERSAL_ALERT = "#8080FF"
 
 # -----------------------------------------------------------------------------
 # LOCAL UTILITIES
@@ -105,15 +107,20 @@ def create_master_table(group, output, scan_result):
     df.support = df.support.round(2)
     df.resistance = df.resistance.round(2)
     df = df.sort_values(by=["breakout", "flip", "trend",
+                            "reversal", "count",
                             "nextEPSReportDate", "nextExDate",
                             "index"],
                         ascending=False)#[False, False])
     bgcolor = lambda row: (
-        COLOR_BULLISH_BOLD if (row.breakout == 1.0 or row.flip == 1.0) else (
-        COLOR_BEARISH_BOLD if (row.breakout == -1.0 or row.flip == -1.0) else (
-        COLOR_BULLISH_LIGHT if row.trend == 1.0 else (
-        COLOR_BEARISH_LIGHT if row.trend == -1.0 else (
-        COLOR_NEUTRAL_LIGHT)))))
+        COLOR_BULLISH_BOLD if (row.breakout == 1 or row.flip == 1) else (
+        COLOR_BEARISH_BOLD if (row.breakout == -1 or row.flip == -1) else (
+        COLOR_REVERSAL_ALERT if (
+                abs(row['count']) == 9 and abs(row.reversal) == 1) else (
+        COLOR_REVERSAL_WARN if (
+                abs(row['count']) == 8 and abs(row.reversal) == 1) else (
+        COLOR_BULLISH_LIGHT if row.trend == 1 else (
+        COLOR_BEARISH_LIGHT if row.trend == -1 else (
+        COLOR_NEUTRAL_LIGHT)))))))
     df["BgColor"] = df.apply(bgcolor, axis=1)
     dcols = [
         "index",

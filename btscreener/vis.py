@@ -232,7 +232,8 @@ def add_subparser_table(subparsers):
     def cmd_table(args):
         symbol_list = load_symbol_list(groups=[args.group])
         scan_result = run_collection(symbol_list)
-        fig = create_master_table(args.group, args.output, scan_result)
+        chart_name = "{group}-table-latest".format(group=args.group)
+        fig = create_master_table(args.group, chart_name, scan_result)
         return fig
 
     parser = subparsers.add_parser("table", description="""
@@ -241,7 +242,7 @@ def add_subparser_table(subparsers):
     parser.add_argument("-g", "--group",
                         help="group name to pass to collector")
     parser.set_defaults(func=cmd_table,
-                        output="{group}-table-latest")
+                        output="{today}-{group}-table.csv")
     return parser
 
 # -----------------------------------------------------------------------------

@@ -102,6 +102,8 @@ def create_master_table(group, output, scan_result):
     """
     # TODO: the third "by" should probably be the TDS#
     df = scan_result.reset_index()
+    df.support = df.support.round(2)
+    df.resistance = df.resistance.round(2)
     df = df.sort_values(by=["breakout", "trend", "wick",
                             "nextEPSReportDate", "nextExDate",
                             "index"],

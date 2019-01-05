@@ -114,7 +114,7 @@ def create_master_table(group, output, scan_result):
         COLOR_BULLISH_LIGHT if row.trend == 1.0 else (
         COLOR_BEARISH_LIGHT if row.trend == -1.0 else (
         COLOR_NEUTRAL_LIGHT)))))
-    df["BgColor"] = df[["trend", "breakout"]].apply(bgcolor, axis=1)
+    df["BgColor"] = df.apply(bgcolor, axis=1)
     dcols = [
         "index",
         "trend", "flip", "breakout",

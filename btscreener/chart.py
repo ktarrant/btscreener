@@ -227,10 +227,49 @@ class SupertrendAD(bt.Indicator):
             else:
                 self.lines.support[0] = self.lines.support[-1]
 
+class TDSequential(bt.Indicator):
+
+    lines = (
+        "count",
+        "reversal",
+    )
+
+    # plotlines = dict(
+    #     count=dict(style="bar"),
+    # )
+
+    def td_base(self, bar):
+        up = 1 if self.data.close[-bar] > self.data.close[-bar-4] else 0
+        dn = -1 if self.data.close[-bar] < self.data.close[-bar-4] else 0
+        return up + dn
+
+    def ta_base(self, bar):
+        up = 1.0 if (self.td_base(bar) == 1.0 and (
+                self.data.high[-bar] > self.data.high[-bar-2])) else 0
+        dn = -1.0 if (self.td_base(bar) == -1.0 and (
+                self.data.low[-bar] < self.data.low[-bar-2])) else 0
+        return up + dn
+
+    def nextstart(self):
+        self.lines.count[0] = 0
+
+    def next(self):
+        tdf = self.td_base(0)
+        tdc = tdf
+        for i in range(8):
+            if self.td_base(i+1) == tdf:
+                tdc += tdf
+            else:
+                break
+        self.lines.count[0] = tdc
+        self.lines.reversal[0] = -self.ta_base(0) if (abs(tdc) > 7) else 0
+
+
 class SummaryStrategy(bt.Strategy):
 
     def __init__(self):
         self.stad = SupertrendAD(self.data0)
+        self.td = TDSequential(self.data0)
 
     def get_breakout(self):
         was_below_resistance = (self.data0.close[-1] <
@@ -260,6 +299,8 @@ class SummaryStrategy(bt.Strategy):
             ("resistance", float(self.stad.lines.resistance[0])),
             ("breakout", self.get_breakout()),
             ("flip", self.get_flip()),
+            ("count", self.td.lines.count[0]),
+            ("reversal", self.td.lines.reversal[0]),
             ("wick", 1 if wick_buy else (-1 if wick_sell else 0)),
             ("prev_close", float(self.data0.close[-1])),
             ("close", float(self.data0.close[0])),

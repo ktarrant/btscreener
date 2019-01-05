@@ -118,6 +118,7 @@ def create_master_table(group, output, scan_result):
     dcols = [
         "index",
         "trend", "flip", "breakout",
+        "count", "reversal",
         "support", "resistance",
         "close", "wick",
         "nextEPSReportDate", "lastDividend", "nextExDate",

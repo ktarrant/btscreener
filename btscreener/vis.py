@@ -109,8 +109,8 @@ def create_master_table(group, output, scan_result):
                             "index"],
                         ascending=False)#[False, False])
     bgcolor = lambda row: (
-        COLOR_BULLISH_BOLD if row.breakout == 1.0 else (
-        COLOR_BEARISH_BOLD if row.breakout == -1.0 else (
+        COLOR_BULLISH_BOLD if (row.breakout == 1.0 or row.flip == 1.0) else (
+        COLOR_BEARISH_BOLD if (row.breakout == -1.0 or row.flip == -1.0) else (
         COLOR_BULLISH_LIGHT if row.trend == 1.0 else (
         COLOR_BEARISH_LIGHT if row.trend == -1.0 else (
         COLOR_NEUTRAL_LIGHT)))))

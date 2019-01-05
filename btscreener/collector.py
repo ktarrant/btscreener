@@ -114,7 +114,7 @@ def create_row(symbol):
     combined = pd.concat([chart_stats, calendar_stats])
     return combined
 
-def run_collection(symbols, pool_size=4):
+def run_collection(symbols, pool_size=8):
     p = Pool(pool_size)
     table = pd.DataFrame(p.map(create_row, symbols), index=symbols)
     return table

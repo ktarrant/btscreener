@@ -72,6 +72,8 @@ if __name__ == '__main__':
                         help="use verbose logging")
     parser.add_argument("-o", "--output",
                         help="output file format")
+    parser.add_argument("-c", "--csv", action="store_true",
+                        help="save csv copy using output name")
 
     subparsers = parser.add_subparsers()
 
@@ -117,6 +119,8 @@ if __name__ == '__main__':
 
     # print and save the result for the user
     print(table)
-    fn = args.output.format(**vars(args))
-    logger.info("Saving to: {}".format(fn))
-    table.to_csv(fn)
+
+    if args.csv:
+        fn = args.output.format(**vars(args))
+        logger.info("Saving to: {}".format(fn))
+        table.to_csv(fn)

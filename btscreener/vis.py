@@ -30,7 +30,7 @@ import pandas as pd
 import numpy as np
 
 # Our own imports ---------------------------------------------------
-from collector import load_symbol_list, run_collection
+from btscreener.collector import load_symbol_list, run_collection
 
 # -----------------------------------------------------------------------------
 # GLOBALS

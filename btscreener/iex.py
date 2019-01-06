@@ -176,7 +176,7 @@ def load_calendar(symbol):
             last_dividend = next(iter(dividends.at[last_exDate, "amount"]))
         except TypeError:
             last_dividend = dividends.at[last_exDate, "amount"]
-        next_exDate = estimate_next(earnings.index)
+        next_exDate = estimate_next(dividends.index)
     else:
         last_exDate = None
         last_dividend = None

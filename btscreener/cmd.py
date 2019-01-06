@@ -26,10 +26,10 @@ import datetime
 import pandas as pd
 
 # Our own imports ---------------------------------------------------
-from iex import add_subparser_historical, add_subparser_calendar
-from chart import add_subparser_scan, add_subparser_plot
-from collector import add_subparser_collect
-from vis import add_subparser_table
+from btscreener.iex import add_subparser_historical, add_subparser_calendar
+from btscreener.chart import add_subparser_scan, add_subparser_plot
+from btscreener.collector import add_subparser_collect
+from btscreener.vis import add_subparser_table
 # -----------------------------------------------------------------------------
 # GLOBALS
 # -----------------------------------------------------------------------------

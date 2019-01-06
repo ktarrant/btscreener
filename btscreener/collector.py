@@ -31,7 +31,7 @@ from bs4 import BeautifulSoup
 
 # Our own imports ---------------------------------------------------
 from btscreener.chart import run_backtest, SCAN_RANGE
-from iex import load_calendar, load_historical
+from btscreener.iex import load_calendar, load_historical
 
 # -----------------------------------------------------------------------------
 # GLOBALS
@@ -48,6 +48,7 @@ faves_components = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
                     "bac", "usb", "brk.b", # banks
                     "x", "cat", "ba", "luv", # trade wars
                     "tsla", "snap", "twtr", "spot",  # unicorns
+                    "tlt", "gld", "jnk", "uso", "ung", # etn's
                     "tlry", "cgc", "stz", # pot
                     "pfe", "jnj", # healthcare
                     ]

@@ -142,7 +142,8 @@ def create_master_table(group, output, scan_result):
     data = [trace]
     figure = dict(data=data, layout=layout)
     fn = output.format(group=group)
-    py.plot(figure, filename=fn)
+    url = py.plot(figure, filename=fn, auto_open=False)
+    print("Plot URL: {}".format(url))
     return scan_result
 
 def create_bar_graph(scan_result):

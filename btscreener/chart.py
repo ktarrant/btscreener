@@ -234,9 +234,10 @@ class TDSequential(bt.Indicator):
         "reversal",
     )
 
-    # plotlines = dict(
-    #     count=dict(style="bar"),
-    # )
+    plotlines = dict(
+        count=dict(_method='bar', alpha=0.50, width=1.0),
+        reversal=dict(_method='bar', alpha=1.00, width=1.0),
+    )
 
     def td_base(self, bar):
         up = 1 if self.data.close[-bar] > self.data.close[-bar-4] else 0

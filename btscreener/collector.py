@@ -24,7 +24,6 @@ run into a combined data table keyed on symbol.
 import logging
 from multiprocessing import Pool
 
-
 # Third-party imports -----------------------------------------------
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -42,7 +41,7 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
-faves_components = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
+default_faves = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
                     "dis", "de", "mcd", "ibm", "cpb", # grandpas
                     "nvda", "amd", "mu", "intc", # semis
                     "bac", "usb", "brk.b", # banks
@@ -95,6 +94,16 @@ def load_sp500_weights():
 
     return sp500_weights
 
+def load_faves(fn="faves-tastyworks.csv"):
+    try:
+        # note that the exported files from tastyworks often need some doctoring
+        # tickers are added that have been long bought out or bankrupt
+        # and other tickers are for indices, which IEX won't have
+        faves = pd.read_csv(fn)
+        return list(faves.Symbol)
+    except IOError:
+        return default_faves
+
 # COLLECTION GENERATOR -----------------------------------------
 def create_row(symbol):
     """
@@ -123,7 +132,7 @@ def run_collection(symbols, pool_size=8):
 # ARGPARSE CONFIGURATION  -----------------------------------------
 def load_symbol_list(groups=["faves"], symbols=[]):
     if "faves" in groups:
-        symbols += faves_components
+        symbols += load_faves()
     elif "dji" in groups:
         symbols += dji_components
     elif "sp" in groups:

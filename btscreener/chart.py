@@ -234,6 +234,11 @@ class TDSequential(bt.Indicator):
         "reversal",
     )
 
+    plotinfo = dict(
+        plothlines = [-9, 9], # max counts
+        plotymargin = 0.15,
+    )
+
     plotlines = dict(
         count=dict(_method='bar', alpha=0.50, width=1.0),
         reversal=dict(_method='bar', alpha=1.00, width=1.0),

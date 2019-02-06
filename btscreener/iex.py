@@ -61,6 +61,25 @@ parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
 # -----------------------------------------------------------------------------
 
 # DATA UTILS  -----------------------------------------
+def yield_quarter_ydays(dates):
+    ydays = [dt.timetuple().tm_yday for dt in dates]
+    last_yday = None
+    for yday_min in range(0, 364, 91):
+        yday_max = yday_min + 91
+        matches = [yday for yday in ydays
+                   if ((yday >= yday_min) and (yday < yday_max))]
+        if len(matches) == 0:
+            if last_yday:
+                # yield a guess based on the previous quarter's result
+                yield last_yday + 91
+            else:
+                # yield a guess based on when we think earnings season is
+                yield yday_min + 31
+        else:
+            # yield the first match we get since we think it's the most recent
+            yield matches[0]
+
+
 def estimate_next(prev_dates):
     """
     Estimates the most likely next date based on previous dates
@@ -72,13 +91,15 @@ def estimate_next(prev_dates):
         datetime.datetime: Best guess for next event
     """
     today = datetime.datetime.today()
-    guesses = [i + datetime.timedelta(days=365) for i in prev_dates]
-    guesses += [i + datetime.timedelta(days=730) for i in prev_dates]
-    try:
-        return min(i for i in guesses
-                   if i + datetime.timedelta(days=365) > today)
-    except ValueError:
-        return None
+    today_yday = today.timetuple().tm_yday
+    ydays = list(yield_quarter_ydays(prev_dates))
+    to_dt = lambda yday, year: (datetime.date(year, 1, 1)
+                                + datetime.timedelta(yday - 1))
+    dates = [to_dt(yday,
+                   today.year if (today_yday < yday) else (today.year + 1))
+             for yday in ydays
+             ]
+    return dates
 
 # WEB LOADERS       -----------------------------------------
 def load_historical(symbol, range="1m"):
@@ -159,7 +180,8 @@ def load_calendar(symbol):
     earnings = load_earnings(symbol)
     if earnings is not None:
         last_reportDate = max(earnings.index)
-        next_reportDate = estimate_next(earnings.index)
+        next_reportDates = estimate_next(earnings.index)
+        next_reportDate = min(next_reportDates)
     else:
         last_reportDate = None
         next_reportDate = None
@@ -172,11 +194,16 @@ def load_calendar(symbol):
         dividends = None
     if dividends is not None:
         last_exDate = max(dividends.index)
+        next_exDates = estimate_next(dividends.index)
+        next_exDate = min(next_exDates)
         try:
             last_dividend = next(iter(dividends.at[last_exDate, "amount"]))
         except TypeError:
-            last_dividend = dividends.at[last_exDate, "amount"]
-        next_exDate = estimate_next(dividends.index)
+            try:
+                # last ditch effort, catch all exceptions and ignore
+                last_dividend = dividends.at[last_exDate, "amount"]
+            except IndexError:
+                last_dividend = None
     else:
         last_exDate = None
         last_dividend = None

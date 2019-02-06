@@ -41,16 +41,31 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
-default_faves = ["aapl", "fb", "amzn", "goog", "nflx", # "FAANG"s
-                    "dis", "de", "mcd", "ibm", "cpb", # grandpas
-                    "nvda", "amd", "mu", "intc", # semis
-                    "bac", "usb", "brk.b", # banks
-                    "x", "cat", "ba", "luv", # trade wars
-                    "tsla", "snap", "twtr", "spot",  # unicorns
-                    "tlt", "gld", "jnk", "uso", "ung", # etn's
-                    "tlry", "cgc", "stz", # pot
-                    "pfe", "jnj", # healthcare
-                    ]
+default_faves = [
+    "VXX", "GE", "F", "EEM", "USO", "BAC", "XLF", "JNK", "GGB", "FXI",
+    "EFA", "SLV", "HYG", "GDX", "XOP", "SPY", "AKS", "TVPT", "QQQ", "T", "CHK",
+    "FCX", "SWN", "VALE", "AAPL", "ESV", "IWM", "GLD", "AGI", "CVE", "CPE",
+    "BBD", "WFT", "AMD", "WFC", "IBN", "MSFT", "NIO", "SAN", "BB", "NVAX", "JD",
+    "SIRI", "INTC", "GSAT", "QEP", "VZ", "CMCSA", "GIS", "JPM", "EWZ", "SNAP",
+    "C", "MU", "QCOM", "BCS", "NGD", "XLU", "FB", "RIG", "KNX", "JCP", "RF",
+    "NOK", "ENPH", "PACB", "GPRO", "NOG", "PBR", "FITB", "DNR", "AMBC", "APHA",
+    "SLB", "PE", "KMI", "UNIT", "FIT", "XLP", "SQQQ", "ZNGA", "PSEC", "PFE",
+    "MS", "LEN", "EVRI", "DIS", "UXIN", "ITUB", "SBUX", "PVG", "PLUG", "AUY",
+    "GM", "CZR", "KHC", "TWTR", "GFI", "ET", "TEVA", "RAD", "NIHD", "M", "TXT",
+    "ZAYO", "UUP", "DB", "KO", "TTOO", "FHN", "EBAY", "FCAU", "KRE", "SID",
+    "ACRX", "HAL", "TLT", "WPM", "IQ", "XHB", "ERIC", "IAG", "AAL", "NLSN", "X",
+    "HL", "SQ", "NWL", "GLNG", "XME", "AGNC", "DF", "MRK", "CSCO", "OIH", "NEM",
+    "CLNE", "MEET", "HPQ", "PCG", "GOLD", "FEZ", "PEGI", "HBAN", "CLF", "BKS",
+    "SNH", "EWW", "NEPT", "XLE", "LVS", "XLRE", "BMY", "USB", "SAND", "WMT",
+    "MRVL", "VNQ", "BABA", "ADMP", "TRQ", "FSM", "DBD", "SPWR", "GERN", "CRNT",
+    "CS", "V", "TGT", "CAG", "RESI", "GNW", "ACB", "ARCC", "XLK", "EQT", "DAL",
+    "GORO", "HST", "ORCL", "XBI", "AMRS", "GDXJ", "XLI", "MGM", "GEL", "NVDA",
+    "PG", "CY", "JNJ", "GNC", "AMAT", "USAT", "AVEO", "DXC", "XOM", "PDD",
+    "MTG", "SMH", "TXMD", "IMMR", "MRO", "IBM", "WATT", "CLDR", "BBBY",
+    "NBR", "BRFS", "TROX", "NE", "CNQ", "TSM", "PEG", "BTI", "MET", "EWJ",
+    "CYH", "FEYE", "CNX", "KGC", "SFUN", "PSO", "XRT", "AEZS", "IEF", "STM",
+    "NUGT", "BP", "VSTM", "CX",
+]
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """
 

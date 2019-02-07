@@ -47,10 +47,6 @@ URL_DIVIDENDS = (
 # -----------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
 
-parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
-""" Parses a date like 2018-02-01 """
-
-
 # -----------------------------------------------------------------------------
 # CLASSES
 # -----------------------------------------------------------------------------
@@ -61,6 +57,13 @@ parsedate = lambda d: datetime.datetime.strptime(d, "%Y-%m-%d")
 # -----------------------------------------------------------------------------
 
 # DATA UTILS  -----------------------------------------
+def parse_date(s):
+    """ Try to parse a date like 2018-02-01, return None if we fail """
+    try:
+        return datetime.datetime.strptime(s, "%Y-%m-%d")
+    except ValueError:
+        return pd.NaT
+
 def yield_quarter_ydays(dates):
     ydays = [dt.timetuple().tm_yday for dt in dates]
     last_yday = None
@@ -140,8 +143,8 @@ def load_earnings(symbol):
     except KeyError:
         return None
     df[["EPSReportDate", "fiscalEndDate"]] = (
-        df[["EPSReportDate", "fiscalEndDate"]].applymap(parsedate))
-    return df.set_index("EPSReportDate")
+        df[["EPSReportDate", "fiscalEndDate"]].applymap(parse_date))
+    return df
 
 def load_dividends(symbol, range='1y'):
     '''
@@ -156,11 +159,15 @@ def load_dividends(symbol, range='1y'):
     '''
     url = URL_DIVIDENDS.format(symbol=symbol, range=range)
     logger.info("Loading: '{}'".format(url))
-    df = pd.DataFrame(requests.get(url).json())
+    data = requests.get(url).json()
+    try:
+        df = pd.DataFrame(data)
+    except ValueError:
+        return None
     if "exDate" in df.columns:
         date_cols = ["declaredDate", "exDate", "paymentDate", "recordDate"]
-        df[date_cols] = df[date_cols].applymap(parsedate)
-        return df.set_index("exDate")
+        df[date_cols] = df[date_cols].applymap(parse_date)
+        return df
     else:
         return None
 
@@ -174,36 +181,23 @@ def load_calendar(symbol):
     Returns:
         pd.DataFrame: cached or loaded DataFrame
     '''
-
-    today = datetime.date.today()
-
     earnings = load_earnings(symbol)
     if earnings is not None:
-        last_reportDate = max(earnings.index)
-        next_reportDates = estimate_next(earnings.index)
+        last_reportDates = earnings["EPSReportDate"]
+        last_reportDate = max(last_reportDates)
+        next_reportDates = estimate_next(last_reportDates)
         next_reportDate = min(next_reportDates)
     else:
         last_reportDate = None
         next_reportDate = None
 
-    try:
-        dividends = load_dividends(symbol)
-    except ValueError as e:
-        logger.error("Failed to load dividends for {}".format(symbol))
-        logger.error(str(e))
-        dividends = None
+    dividends = load_dividends(symbol)
     if dividends is not None:
-        last_exDate = max(dividends.index)
-        next_exDates = estimate_next(dividends.index)
+        last_exDates = dividends["exDate"]
+        last_exDate = max(last_exDates)
+        next_exDates = estimate_next(last_exDates)
         next_exDate = min(next_exDates)
-        try:
-            last_dividend = next(iter(dividends.at[last_exDate, "amount"]))
-        except TypeError:
-            try:
-                # last ditch effort, catch all exceptions and ignore
-                last_dividend = dividends.at[last_exDate, "amount"]
-            except IndexError:
-                last_dividend = None
+        last_dividend = dividends.iloc[0].loc["amount"]
     else:
         last_exDate = None
         last_dividend = None

@@ -118,7 +118,9 @@ if __name__ == '__main__':
     table = args.func(args)
 
     # print and save the result for the user
-    print(table)
+    with pd.option_context('display.max_rows', None,
+                           'display.max_columns', None):
+        print(table)
 
     if args.csv:
         fn = args.output.format(**vars(args))

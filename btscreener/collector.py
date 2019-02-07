@@ -139,10 +139,15 @@ def create_row(symbol):
     combined = pd.concat([chart_stats, calendar_stats])
     return combined
 
-def run_collection(symbols, pool_size=8):
-    p = Pool(pool_size)
-    table = pd.DataFrame(p.map(create_row, symbols), index=symbols)
-    return table
+def run_collection(symbols, pool_size=0):
+    if pool_size > 0:
+        p = Pool(pool_size)
+        table = pd.DataFrame(p.map(create_row, symbols), index=symbols)
+        return table
+    else:
+        values = [create_row(symbol) for symbol in symbols]
+        table = pd.DataFrame(values, index=symbols)
+        return table
 
 # ARGPARSE CONFIGURATION  -----------------------------------------
 def load_symbol_list(groups=["faves"], symbols=[]):
@@ -174,7 +179,7 @@ def add_subparser_collect(subparsers):
         args.group_label = "-".join(groups)
         symbols = load_symbol_list(groups=args.group if args.group else [],
                                    symbols=args.symbol if args.symbol else [])
-        return run_collection(symbols)
+        return run_collection(symbols, pool_size=args.poolsize)
 
     parser = subparsers.add_parser("collect", description="""
     collects summary technical and event data for a group of stock tickers
@@ -182,6 +187,8 @@ def add_subparser_collect(subparsers):
     parser.add_argument("-s", "--symbol", action="append")
     parser.add_argument("-g", "--group", action="append",
                         choices=["faves", "dji", "sp"])
+    parser.add_argument("-p", "--poolsize", type=int, default=0,
+                        help="Pool size. If 0, multithreading is not used.")
 
     parser.set_defaults(func=cmd_collect,
                         output="{today}_[{group_label}].csv")

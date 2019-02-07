@@ -240,7 +240,7 @@ def add_subparser_table(subparsers):
     """
     def cmd_table(args):
         symbol_list = load_symbol_list(groups=[args.group])
-        scan_result = run_collection(symbol_list)
+        scan_result = run_collection(symbol_list, pool_size=args.poolsize)
         chart_name = "{group}-table-latest".format(group=args.group)
         fig = create_master_table(args.group, chart_name, scan_result)
         return fig
@@ -250,6 +250,8 @@ def add_subparser_table(subparsers):
     """)
     parser.add_argument("-g", "--group",
                         help="group name to pass to collector")
+    parser.add_argument("-p", "--poolsize", type=int, default=0,
+                        help="Pool size. If 0, multithreading is not used.")
     parser.set_defaults(func=cmd_table,
                         output="{today}-{group}-table.csv")
     return parser

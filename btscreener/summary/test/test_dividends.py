@@ -7,7 +7,7 @@ from btscreener.summary.dividends import make_dividend_summary
 
 
 @pytest.fixture(scope="module")
-def dividend_history(request):
+def dividend_history():
     data = [
         {
             "exDate": datetime.date(year=2017, month=8, day=10),

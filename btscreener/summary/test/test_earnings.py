@@ -7,7 +7,7 @@ from btscreener.summary.earnings import make_earnings_summary
 
 
 @pytest.fixture(scope="module")
-def earnings_history(request):
+def earnings_history():
     data = [
         {
             "actualEPS": 2.1,

@@ -15,8 +15,7 @@ class WickReversalSignal(bt.Indicator):
     """
 
     lines = (
-        "buy",
-        "sell",
+        "wick",
     )
 
     params = (
@@ -28,10 +27,14 @@ class WickReversalSignal(bt.Indicator):
         plot=True, subplot=False, plotlinelabels=True
     )
 
-    plotline_base = dict(markersize=8.0, ls="")
+    plotline_base = dict()
     plotlines = dict(
-        buy=dict(marker='o', color='blue', fillstyle='bottom', **plotline_base),
-        sell=dict(marker='o', color='red', fillstyle='top', **plotline_base),
+        wick=dict(marker='o',
+                  color='black',
+                  # fillstyle='bottom',
+                  markersize=8.0,
+                  ls="",
+                  )
     )
 
     def __init__(self):
@@ -49,7 +52,9 @@ class WickReversalSignal(bt.Indicator):
             wick_range == 0.0, 0.1, wick_range)
         close_buy = (close_percent >= (1 - self.p.close_percent_max))
         close_sell = (close_percent <= self.p.close_percent_max)
-        self.lines.buy = bt.If(bt.And(wick_buy, close_buy),
-                               self.data.low, np.NaN)
-        self.lines.sell = bt.If(bt.And(wick_sell, close_sell),
-                                self.data.high, np.NaN)
+        self.lines.wick = bt.If(bt.And(wick_buy, close_buy),
+                                self.data.low,
+                                bt.If(bt.And(wick_sell, close_sell),
+                                      self.data.high,
+                                      np.NaN)
+                                )

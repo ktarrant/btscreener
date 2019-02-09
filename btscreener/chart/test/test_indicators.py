@@ -45,7 +45,7 @@ def test_sanity_check(cerebro):
     print(result)
 
 @pytest.mark.parametrize("indicatorClass", [
-    WickReversalSignal, Supertrend, TDSequential,
+    WickReversalSignal, Supertrend, TDSequential, ADBreakout
 ])
 def test_simple(cerebro, indicatorClass):
     cerebro.addstrategy(SimpleStrategy, indicatorClass=indicatorClass)
@@ -53,5 +53,3 @@ def test_simple(cerebro, indicatorClass):
     # Run over everything
     result = cerebro.run()
     print(result)
-
-# TODO: Test ADBreakout

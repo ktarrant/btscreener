@@ -16,7 +16,6 @@ def historical_data(request):
 
 @pytest.fixture(scope="function")
 def cerebro(request, historical_data):
-    print(historical_data)
     cerebro = bt.Cerebro()
 
     # Set up the data source

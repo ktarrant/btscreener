@@ -107,6 +107,8 @@ def load_dividends(symbol, lookback="5y"):
     url = URL_DIVIDENDS.format(symbol=symbol, range=lookback)
     logger.info("Loading: '{}'".format(url))
     data = requests.get(url).json()
+    if len(data) == 0:
+        return None
     try:
         df = pd.DataFrame(data)
     except ValueError:

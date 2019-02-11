@@ -21,7 +21,7 @@ def run_backtest(table, basket):
     cerebro.addstrategy(basket)
 
     # Set up the data source
-    data = bt.feeds.PandasData(dataname=table)
+    data = bt.feeds.PandasData(dataname=table.set_index("date"))
     cerebro.adddata(data)
 
     # Run over everything

@@ -16,6 +16,11 @@ class BasketStrategy(bt.Strategy):
             ("td", TDSequential()),
         ])
 
+    @staticmethod
+    def get_min_period():
+        # TODO: Compute based on self.indicators ?
+        return "3m"
+
     def yield_summary(self):
         for field_name in self.data.lines.getlinealiases():
             line = getattr(self.data.lines, field_name)

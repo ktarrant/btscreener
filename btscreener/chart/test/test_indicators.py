@@ -1,29 +1,11 @@
-
-import pytest
 import backtrader as bt
-
-from btscreener.sources.iex import load_historical
 
 from btscreener.chart.priceaction import WickReversalSignal
 from btscreener.chart.supertrend import Supertrend
 from btscreener.chart.tdcount import TDSequential
 from btscreener.chart.adbreakout import ADBreakout
 
-@pytest.fixture(scope="module")
-def historical_data(request):
-    data = load_historical("AAPL", lookback="3m")
-    return data.set_index("date")
-
-@pytest.fixture(scope="function")
-def cerebro(request, historical_data):
-    cerebro = bt.Cerebro()
-
-    # Set up the data source
-    data = bt.feeds.PandasDirectData(dataname=historical_data, openinterest=-1)
-    cerebro.adddata(data)
-
-    return cerebro
-
+from .fixtures import *
 
 class SimpleStrategy(bt.Strategy):
 

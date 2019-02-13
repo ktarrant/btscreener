@@ -22,7 +22,10 @@ class BasketStrategy(bt.Strategy):
         return "3m"
 
     def yield_summary(self):
+        yield ("datetime", self.data.datetime.datetime())
         for field_name in self.data.lines.getlinealiases():
+            if field_name is "datetime":
+                continue
             line = getattr(self.data.lines, field_name)
             yield (field_name, line[0])
             yield ("prev_" + field_name, line[-1])

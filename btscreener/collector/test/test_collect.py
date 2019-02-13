@@ -1,5 +1,8 @@
 import pytest
 import time
+import os
+import pickle
+
 import pandas as pd
 
 from btscreener.collector.collect import create_row, run_collection
@@ -25,3 +28,8 @@ def test_collect(pool_size):
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
         print(scan)
+
+    if pytest.config.getoption("--pickle", None):
+        fn = os.path.join(os.path.dirname(__file__), "collection.pickle")
+        with open(fn, mode="wb") as fobj:
+            pickle.dump(scan, fobj)

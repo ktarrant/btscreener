@@ -1,3 +1,5 @@
+import datetime
+
 from btscreener.chart.basket import BasketStrategy
 from btscreener.chart.backtest import run_backtest
 
@@ -6,6 +8,8 @@ from .fixtures import *
 def test_backtest_summary(historical_data):
     summary = run_backtest(historical_data, BasketStrategy)
     print(summary)
+
+    assert isinstance(summary.datetime, datetime.datetime)
 
     assert summary.low <= summary.open
     assert summary["low"] <= summary["close"]

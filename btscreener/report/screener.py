@@ -93,7 +93,10 @@ def make_screener_table(title, backtest):
     Returns:
         figure
     """
-    df = backtest.apply(make_screener_row, axis=1).reset_index()
+    df = backtest.sort_values(by=["stad_trend", "stad_breakout", "td_count",
+                                  "next_report_date", "next_ex_date"],
+                              ascending=False)
+    df = df.apply(make_screener_row, axis=1).reset_index()
     bgcolor = df.pop("BgColor")
     trace = go.Table(
         header=dict(values=df.columns,
@@ -102,10 +105,10 @@ def make_screener_table(title, backtest):
         cells=dict(values=[df[col] for col in df.columns],
                    fill=dict(color=[bgcolor]),
                    align=['left'] * 5))
-    layout = dict(title="{} ({})".format(title, "")) # datetime.date.today()))
+    last_datetime = backtest.datetime.dropna().iloc[0].date()
+    layout = dict(title="{} ({})".format(title, last_datetime))
     data = [trace]
     figure = dict(data=data, layout=layout)
-    # fn = output.format(group=title)
     url = py.plot(figure, filename=title, auto_open=False)
     logger.info("Plot URL: {}".format(url))
     return url

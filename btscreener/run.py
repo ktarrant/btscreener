@@ -1,11 +1,16 @@
+import logging
 import argparse
 import pickle
 import os
 import datetime
 from collections import OrderedDict
 
+import pandas as pd
+
 from btscreener.collector.tickers import default_faves, dji_components
 from btscreener.collector.collect import run_collection
+
+logger = logging.getLogger(__name__)
 
 def get_collection_dir(args):
     date = datetime.date.today()
@@ -25,11 +30,22 @@ def do_collection(args):
     dest = get_collection_dir(args)
     symbols = get_symbols(args.group)
     backtest = run_collection(symbols, pool_size=args.pool_size)
+    # print and save the result for the user
+    with pd.option_context('display.max_rows', None,
+                           'display.max_columns', None):
+        logger.info(backtest)
     last_datetime = backtest.datetime.iloc[0]
-    fn = args.format_out.format(date=last_datetime, group=args.group)
+    fn = args.format_out.format(**vars(args))
     path = os.path.join(dest, fn)
     with open(path, mode="wb") as fobj:
+        logger.debug("Saving pickle: {}".format(path))
         pickle.dump(backtest, fobj)
+
+    if args.csv:
+        fn = args.format_csv.format(**vars(args))
+        path = os.path.join(dest, fn)
+        logger.info("Saving csv: {}".format(path))
+        backtest.to_csv(path)
 
 parser = argparse.ArgumentParser(description="""
 Runs a full technical screening process to produce one or more reports and/or
@@ -55,13 +71,21 @@ II. Reporting
 subparsers = parser.add_subparsers()
 
 collect_parser = subparsers.add_parser("collect")
-collect_parser.add_argument("--group", choices=["faves", "dji"],
+collect_parser.add_argument("--group",
+                            choices=["faves", "dji"],
                             default="faves",
                             help="symbol group to collect")
-collect_parser.add_argument("--pool-size", default=4,
+collect_parser.add_argument("--pool-size",
+                            default=4,
                             help="pool size for multiprocessing")
 collect_parser.add_argument("--format-out",
-                            default="{date}_{group}_collection.pickle")
+                            default="{date}_{group}_collection")
+collect_parser.add_argument("--csv",
+                            action="store_true",
+                            help="enable csv output")
+collect_parser.add_argument("--format-csv",
+                            default="{date}_{group}_collection")
+
 collect_parser.set_defaults(func=do_collection)
 
 args = parser.parse_args()

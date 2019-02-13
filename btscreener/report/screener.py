@@ -18,6 +18,13 @@ COLOR_BEARISH_LIGHT = '#FFCCCC'
 COLOR_REVERSAL_WARN = "#FFFF80"
 COLOR_REVERSAL_ALERT = "#8080FF"
 
+EVENT_STAD_TREND_UP = "Bull"
+EVENT_STAD_TREND_DN = "Bear"
+EVENT_STAD_FLIP = "Flip"
+EVENT_STAD_BREAKOUT = "Breakout"
+EVENT_TD_WARN = "Warn"
+EVENT_TD_FRESH = "Fresh"
+
 def get_bg_color(trend=0, flip=0, breakout=0, **kwargs):
     """
     :param trend:
@@ -53,15 +60,17 @@ def make_screener_row(backtest_row):
             backtest_row.prev_stad_trend <= 0)) else (
         -1 if (backtest_row.stad_trend < 0) and (
                 backtest_row.prev_stad_trend >= 0) else 0)
-    td_warning = (abs(backtest_row.td_reversal) > 0)
-    td_reversal = ((backtest_row.td_reversal == 0) and
-                   (abs(backtest_row.prev_td_reversal) > 0))
-    breakout_event = "Up" if (backtest_row.stad_breakout > 0) else (
-                     "Dn" if (backtest_row.stad_breakout < 0) else "")
-    s_trend = "Bull" if backtest_row.stad_trend > 0 else (
-              "Bear" if backtest_row.stad_trend < 0 else "")
-    s_event = "Flip" if (flipped != 0) else breakout_event
-    td_event = "Warning" if td_warning else ("Reversal" if td_reversal else "")
+
+    s_events = []
+    if backtest_row.stad_trend > 0: s_events += [EVENT_STAD_TREND_UP]
+    if backtest_row.stad_trend < 0: s_events += [EVENT_STAD_TREND_DN]
+    if flipped != 0: s_events += [EVENT_STAD_FLIP]
+    if backtest_row.stad_breakout != 0: s_events += [EVENT_STAD_BREAKOUT]
+    td_events = ["{:.0f}".format(backtest_row.td_count)]
+    if abs(backtest_row.td_reversal) > 0: td_events += [EVENT_TD_WARN]
+    if ((backtest_row.td_reversal == 0) and
+        (abs(backtest_row.prev_td_reversal) > 0)):
+        td_events += [EVENT_TD_FRESH]
     next_earnings = ("" if pd.isnull(backtest_row.next_report_date)
                      else backtest_row.next_report_date)
     next_exdiv = ("" if pd.isnull(backtest_row.next_ex_date)
@@ -69,8 +78,8 @@ def make_screener_row(backtest_row):
     div_amount = ("" if pd.isnull(backtest_row.last_dividend_amount)
                   else backtest_row.last_dividend_amount)
     return pd.Series(OrderedDict([
-        ("SuperTrend", (s_trend + s_event)),
-        ("TD Count", "{:.0f}{}".format(backtest_row.td_count, td_event)),
+        ("SuperTrend", " ".join(s_events)),
+        ("TD Count", " ".join(td_events)),
         ("Close", "{:.2f}".format(backtest_row.close)),
         ("Support", "{:.2f}".format(backtest_row.stad_support)),
         ("Resistance", "{:.2f}".format(backtest_row.stad_resistance)),

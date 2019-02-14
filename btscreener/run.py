@@ -10,7 +10,9 @@ import pandas as pd
 from btscreener.collector.tickers import default_faves, dji_components
 from btscreener.collector.collect import run_collection
 
+
 logger = logging.getLogger(__name__)
+
 
 def get_collection_dir(args):
     date = datetime.date.today()
@@ -35,17 +37,21 @@ def do_collection(args):
                            'display.max_columns', None):
         logger.info(backtest)
     last_datetime = backtest.datetime.iloc[0]
-    fn = args.format_out.format(**vars(args))
+    fn = args.format_out.format(date=last_datetime, **vars(args))
     path = os.path.join(dest, fn)
     with open(path, mode="wb") as fobj:
         logger.debug("Saving pickle: {}".format(path))
         pickle.dump(backtest, fobj)
 
     if args.csv:
-        fn = args.format_csv.format(**vars(args))
+        fn = args.format_csv.format(date=last_datetime, **vars(args))
         path = os.path.join(dest, fn)
         logger.info("Saving csv: {}".format(path))
         backtest.to_csv(path)
+
+def do_report(args):
+    pass
+
 
 parser = argparse.ArgumentParser(description="""
 Runs a full technical screening process to produce one or more reports and/or
@@ -68,9 +74,12 @@ II. Reporting
 3. Pass the data off to plotly or another service to report the information
 """)
 
+parser.add_argument('-v', '--verbose', action='count', default=0)
+
 subparsers = parser.add_subparsers()
 
 collect_parser = subparsers.add_parser("collect")
+collect_parser.set_defaults(func=do_collection)
 collect_parser.add_argument("--group",
                             choices=["faves", "dji"],
                             default="faves",
@@ -86,7 +95,23 @@ collect_parser.add_argument("--csv",
 collect_parser.add_argument("--format-csv",
                             default="{date}_{group}_collection")
 
-collect_parser.set_defaults(func=do_collection)
+# report_parser = subparsers.add_parser("report")
+# report_parser.add_argument("")
 
-args = parser.parse_args()
-args.func(args)
+if __name__ == "__main__":
+    rootLogger = logging.getLogger()
+    rootLogger.setLevel(logging.DEBUG)
+
+    consoleHandler = logging.StreamHandler()
+    rootLogger.addHandler(consoleHandler)
+
+    args = parser.parse_args()
+
+    v_count = args.verbose if args.verbose < 3 else 3
+    # 0 - ERROR, 1 - WARNING, 2 - INFO, 3 - DEBUG
+    logLevel = logging.ERROR - (10 * v_count)
+    consoleHandler.setLevel(logLevel)
+
+    args.func(args)
+
+

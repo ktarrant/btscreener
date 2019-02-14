@@ -19,7 +19,9 @@ def test_create_row():
                            'display.max_columns', None):
         print(row)
 
-@pytest.mark.parametrize("pool_size", [0, 1, 4, 8])
+@pytest.mark.parametrize("pool_size", [
+    #0, 1, TODO figure out how to mark these as slow so we can skip em
+    4, 8])
 def test_collect(pool_size):
     start_time = time.perf_counter()
     scan = run_collection(TEST_TICKERS, pool_size=pool_size)

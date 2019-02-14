@@ -68,7 +68,7 @@ def make_screener_row(backtest_row):
     if backtest_row.stad_breakout != 0: s_events += [EVENT_STAD_BREAKOUT]
     td_events = ["{:.0f}".format(backtest_row.td_count)]
     if abs(backtest_row.td_reversal) > 0: td_events += [EVENT_TD_WARN]
-    if ((backtest_row.td_reversal == 0) and
+    if ((abs(backtest_row.td_count) == 1) and
         (abs(backtest_row.prev_td_reversal) > 0)):
         td_events += [EVENT_TD_FRESH]
     next_earnings = ("" if pd.isnull(backtest_row.next_report_date)
@@ -102,7 +102,7 @@ def make_screener_table(title, backtest):
     Returns:
         figure
     """
-    df = backtest.sort_values(by=["stad_trend", "stad_breakout", "td_count",
+    df = backtest.sort_values(by=["td_count", "stad_breakout", "stad_trend",
                                   "next_report_date", "next_ex_date"],
                               ascending=False)
     df = df.apply(make_screener_row, axis=1).reset_index()
@@ -114,10 +114,11 @@ def make_screener_table(title, backtest):
         cells=dict(values=[df[col] for col in df.columns],
                    fill=dict(color=[bgcolor]),
                    align=['left'] * 5))
-    last_datetime = backtest.datetime.dropna().iloc[0].date()
+    last_datetime = backtest.datetime.dropna().iloc[-1].date()
     layout = dict(title="{} ({})".format(title, last_datetime))
     data = [trace]
     figure = dict(data=data, layout=layout)
+    logger.info("Creating plot '{}'".format(title))
     url = py.plot(figure, filename=title, auto_open=False)
     logger.info("Plot URL: {}".format(url))
     return url

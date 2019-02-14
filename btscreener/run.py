@@ -9,7 +9,7 @@ import pandas as pd
 
 from btscreener.collector.tickers import default_faves, dji_components
 from btscreener.collector.collect import run_collection
-
+from btscreener.report.screener import make_screener_table
 
 logger = logging.getLogger(__name__)
 
@@ -30,28 +30,44 @@ def get_symbols(group_name):
 
 def do_collection(args):
     dest = get_collection_dir(args)
+    logger.debug("Using collection dir: {}".format(dest))
     symbols = get_symbols(args.group)
     backtest = run_collection(symbols, pool_size=args.pool_size)
     # print and save the result for the user
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
         logger.info(backtest)
-    last_datetime = backtest.datetime.iloc[0]
-    fn = args.format_out.format(date=last_datetime, **vars(args))
+    last_datetime = backtest.datetime.iloc[-1]
+    last_date = last_datetime.date()
+    fn = args.format_file.format(date=last_date, ext="pickle", **vars(args))
     path = os.path.join(dest, fn)
     with open(path, mode="wb") as fobj:
         logger.debug("Saving pickle: {}".format(path))
         pickle.dump(backtest, fobj)
 
     if args.csv:
-        fn = args.format_csv.format(date=last_datetime, **vars(args))
+        fn = args.format_csv.format(date=last_date, ext="csv", **vars(args))
         path = os.path.join(dest, fn)
         logger.info("Saving csv: {}".format(path))
         backtest.to_csv(path)
 
-def do_report(args):
-    pass
+def yield_collections(collection_dir):
+    for root, dirs, files in os.walk(collection_dir):
+        for file in files:
+            if file.endswith("_collection.pickle"):
+                date, group, suffix = file.split("_")
+                fn = os.path.join(root, file)
+                logger.info("Loading collection: {}".format(fn))
+                with open(fn, "rb") as fobj:
+                    yield (date, group, pickle.load(fobj))
 
+def do_report(args):
+    dest = get_collection_dir(args)
+    logger.debug("Using collection dir: {}".format(dest))
+    # TODO: allow the user to specify which collection and pass that to y_c
+    for date, group, collection in yield_collections(collection_dir=dest):
+        # TODO: Support processing more than one collection (?)
+        return make_screener_table(group, collection)
 
 parser = argparse.ArgumentParser(description="""
 Runs a full technical screening process to produce one or more reports and/or
@@ -87,23 +103,23 @@ collect_parser.add_argument("--group",
 collect_parser.add_argument("--pool-size",
                             default=4,
                             help="pool size for multiprocessing")
-collect_parser.add_argument("--format-out",
-                            default="{date}_{group}_collection")
+collect_parser.add_argument("--format-file",
+                            default="{date}_{group}_collection.{ext}")
 collect_parser.add_argument("--csv",
                             action="store_true",
                             help="enable csv output")
-collect_parser.add_argument("--format-csv",
-                            default="{date}_{group}_collection")
 
-# report_parser = subparsers.add_parser("report")
-# report_parser.add_argument("")
+report_parser = subparsers.add_parser("report")
+report_parser.set_defaults(func=do_report)
 
 if __name__ == "__main__":
+    import sys
+
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
 
-    consoleHandler = logging.StreamHandler()
-    rootLogger.addHandler(consoleHandler)
+    consoleHandler = logging.StreamHandler(stream=sys.stdout)
+    consoleHandler.setFormatter(logging.Formatter())
 
     args = parser.parse_args()
 
@@ -111,6 +127,7 @@ if __name__ == "__main__":
     # 0 - ERROR, 1 - WARNING, 2 - INFO, 3 - DEBUG
     logLevel = logging.ERROR - (10 * v_count)
     consoleHandler.setLevel(logLevel)
+    rootLogger.addHandler(consoleHandler)
 
     args.func(args)
 

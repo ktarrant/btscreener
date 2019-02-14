@@ -7,7 +7,7 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
-default_faves = [
+default_faves = {
     # start with a base of liquid, optionable stocks
     "VXX", "GE", "F", "EEM", "USO", "BAC", "XLF", "JNK", "GGB", "FXI",
     "EFA", "SLV", "HYG", "GDX", "XOP", "SPY", "AKS", "TVPT", "QQQ", "T", "CHK",
@@ -38,7 +38,7 @@ default_faves = [
     "GOOG", "AMZN", "NFLX", "IRBT", "XLNX", "SPOT", "EB", "UVXY",
     "CAT", "DE", "X", "LUV", "TSLA", "STM", "BA",
     "TLRY", "STZ", "BJ", "MCD", "CPB", "RH",
-]
+}
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """
 

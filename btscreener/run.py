@@ -21,35 +21,13 @@ def get_collection_dir(args):
     return dest
 
 def get_symbols(group_name):
-    if group_name is "faves":
+    if group_name == "faves":
         return default_faves
-    elif group_name is "dji":
+    elif group_name == "dji":
         return dji_components
     else:
         raise KeyError("No group '{}'".format(group_name))
 
-def do_collection(args):
-    dest = get_collection_dir(args)
-    logger.debug("Using collection dir: {}".format(dest))
-    symbols = get_symbols(args.group)
-    backtest = run_collection(symbols, pool_size=args.pool_size)
-    # print and save the result for the user
-    with pd.option_context('display.max_rows', None,
-                           'display.max_columns', None):
-        logger.info(backtest)
-    last_datetime = backtest.datetime.iloc[-1]
-    last_date = last_datetime.date()
-    fn = args.format_file.format(date=last_date, ext="pickle", **vars(args))
-    path = os.path.join(dest, fn)
-    with open(path, mode="wb") as fobj:
-        logger.debug("Saving pickle: {}".format(path))
-        pickle.dump(backtest, fobj)
-
-    if args.csv:
-        fn = args.format_csv.format(date=last_date, ext="csv", **vars(args))
-        path = os.path.join(dest, fn)
-        logger.info("Saving csv: {}".format(path))
-        backtest.to_csv(path)
 
 def yield_collections(collection_dir):
     for root, dirs, files in os.walk(collection_dir):
@@ -60,14 +38,6 @@ def yield_collections(collection_dir):
                 logger.info("Loading collection: {}".format(fn))
                 with open(fn, "rb") as fobj:
                     yield (date, group, pickle.load(fobj))
-
-def do_report(args):
-    dest = get_collection_dir(args)
-    logger.debug("Using collection dir: {}".format(dest))
-    # TODO: allow the user to specify which collection and pass that to y_c
-    for date, group, collection in yield_collections(collection_dir=dest):
-        # TODO: Support processing more than one collection (?)
-        return make_screener_table(group, collection)
 
 parser = argparse.ArgumentParser(description="""
 Runs a full technical screening process to produce one or more reports and/or
@@ -90,45 +60,83 @@ II. Reporting
 3. Pass the data off to plotly or another service to report the information
 """)
 
-parser.add_argument('-v', '--verbose', action='count', default=0)
-
-subparsers = parser.add_subparsers()
-
-collect_parser = subparsers.add_parser("collect")
-collect_parser.set_defaults(func=do_collection)
-collect_parser.add_argument("--group",
-                            choices=["faves", "dji"],
-                            default="faves",
-                            help="symbol group to collect")
-collect_parser.add_argument("--pool-size",
-                            default=4,
-                            help="pool size for multiprocessing")
-collect_parser.add_argument("--format-file",
-                            default="{date}_{group}_collection.{ext}")
-collect_parser.add_argument("--csv",
-                            action="store_true",
-                            help="enable csv output")
-
-report_parser = subparsers.add_parser("report")
-report_parser.set_defaults(func=do_report)
+parser.add_argument('-v', '--verbose', action='count', default=0,
+                    help="Logging verbosity level")
+parser.add_argument("--cache",
+                    choices=["collection"],
+                    action="append")
+parser.add_argument("--group",
+                    choices=["faves", "dji"],
+                    default="faves",
+                    help="symbol group to collect")
+parser.add_argument("--pool-size",
+                    default=4,
+                    help="pool size for multiprocessing")
+parser.add_argument("--format-file",
+                    default="{date}_{group}_collection.{ext}")
+parser.add_argument("--csv",
+                    action="store_true",
+                    help="enable csv output")
+parser.add_argument("--report",
+                    action="append",
+                    choices=["screener"],
+                    help="generate a report from the collection")
 
 if __name__ == "__main__":
     import sys
 
+    # Set up the root logger to log everything, we will filter with handlers
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
-
     consoleHandler = logging.StreamHandler(stream=sys.stdout)
     consoleHandler.setFormatter(logging.Formatter())
 
     args = parser.parse_args()
 
     v_count = args.verbose if args.verbose < 3 else 3
+    # set the error level for the console handler
     # 0 - ERROR, 1 - WARNING, 2 - INFO, 3 - DEBUG
     logLevel = logging.ERROR - (10 * v_count)
     consoleHandler.setLevel(logLevel)
     rootLogger.addHandler(consoleHandler)
 
-    args.func(args)
+    today = datetime.date.today()
 
+    if args.cache:
+        collection_dir = get_collection_dir(args)
+        logger.debug("Using collection dir: {}".format(collection_dir))
 
+        collection_fn = args.format_file.format(date=today, ext="pickle",
+                                                **vars(args))
+        collection_path = os.path.join(collection_dir, collection_fn)
+
+    symbols = get_symbols(args.group)
+
+    if args.cache and "collection" in args.cache and (
+            os.path.exists(collection_path)):
+        # we are using caching and we found a cached collection for today
+        with open(collection_path, mode="rb") as fobj:
+            collection = pickle.load(fobj)
+
+    else:
+        # run_collection downloads symbol data and runs backtests
+        collection = run_collection(symbols, pool_size=args.pool_size)
+
+        # if we are using caching, update the cache with the new collection
+        if args.cache and "collection" in args.cache:
+            with open(collection_path, mode="wb") as fobj:
+                logger.debug("Saving pickle: {}".format(collection_path))
+                pickle.dump(collection, fobj)
+
+    with pd.option_context('display.max_rows', None,
+                           'display.max_columns', None):
+        logger.info(collection)
+
+    if args.csv:
+        csv_fn = args.format_csv.format(date=today, ext="csv", **vars(args))
+        csv_path = os.path.join(collection_dir, csv_fn)
+        logger.info("Saving csv: {}".format(csv_path))
+        collection.to_csv(csv_path)
+
+    if args.report and "screener" in args.report:
+        url = make_screener_table(args.group, collection)

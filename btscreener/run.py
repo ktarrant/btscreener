@@ -70,6 +70,7 @@ parser.add_argument("--group",
                     default="faves",
                     help="symbol group to collect")
 parser.add_argument("--pool-size",
+                    type=int,
                     default=4,
                     help="pool size for multiprocessing")
 parser.add_argument("--format-file",

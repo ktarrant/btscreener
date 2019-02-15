@@ -7,8 +7,7 @@ dji_components = ["v", "xom", "wmt", "cat", "cvx", "aapl", "gs", "axp",
                   "pfe", "unh", "hd", "wba", "vz", "utx"]
 """list(str): List of Dow Jones Industrial Index component tickers."""
 
-default_faves = {
-    # start with a base of liquid, optionable stocks
+default_liquid = {
     "VXX", "GE", "F", "EEM", "USO", "BAC", "XLF", "JNK", "GGB", "FXI",
     "EFA", "SLV", "HYG", "GDX", "XOP", "SPY", "AKS", "TVPT", "QQQ", "T", "CHK",
     "FCX", "SWN", "VALE", "AAPL", "ESV", "IWM", "GLD", "AGI", "CVE", "CPE",
@@ -32,12 +31,37 @@ default_faves = {
     "NBR", "BRFS", "TROX", "NE", "CNQ", "TSM", "PEG", "BTI", "MET", "EWJ",
     "CYH", "FEYE", "CNX", "KGC", "SFUN", "PSO", "XRT", "AEZS", "IEF", "STM",
     "NUGT", "BP", "VSTM", "CX",
-    # throw in some high-average-volume stocks
-    "SNAP", "EWZ", "CZR", "CRON", "EA", "ZNGA", "ACB", "MGNX", "NOK",
-    # throw in some that I like
-    "GOOG", "AMZN", "NFLX", "IRBT", "XLNX", "SPOT", "EB", "UVXY",
-    "CAT", "DE", "X", "LUV", "TSLA", "STM", "BA",
-    "TLRY", "STZ", "BJ", "MCD", "CPB", "RH",
+}
+
+default_faves = {
+    # liquid etfs
+    "SPY", "QQQ", "IWM", "VXX", "TLT", "IBB", "EEM", "XLF", "GDX", "XOP", "SLV",
+    # big techies
+    "AAPL", "AMZN", "FB", "NFLX", "GOOGL", "MSFT", "ADBE", "ORCL", "CSCO",
+    # unicorns
+    "SPOT", "SNAP", "EB", "IRBT", "TSLA", "CHGG", "ROKU", "FITB", "GPRO",
+    # video games
+    "ATVI", "EA", "TTWO",
+    # semis
+    "AMD", "NVDA", "MU", "INTC", "QCOM",
+    # banks
+    "BAC", "WFC", "JPM", "C", "GS", "MS",
+    # retail
+    "GOOS", "WMT", "LULU", "RH", "FOSL",
+    # telecom
+    "T", "TMUS", "VZ", "S", "CMCSA",
+    # pot
+    "CGC", "TLRY", "NBEV", "NEPT", "ABBV",
+    # china
+    "TME", "JD", "BABA", "NIO",
+    # some grandpa stocks
+    "DE", "MCD", "DIS", "BA", "X",
+    # dividend candidates
+    "STZ", "STM", "CPB", "XOM", "PPL", "KO", "PEP",
+    # saas
+    "NOW", "FIVN", "TEAM", "TWLO", "CRM", "WDAY", "ZS", "FEYE", "VEEV", "OKTA",
+    # misc
+    "BJ", "XLNX", "MEET",
 }
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """

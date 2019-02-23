@@ -5,7 +5,7 @@ from btscreener.sources.iex import load_historical
 
 @pytest.fixture(scope="module")
 def historical_data(request):
-    data = load_historical("AAPL", lookback="3m")
+    data = load_historical("AAPL", lookback="1y")
     return data
 
 @pytest.fixture(scope="function")

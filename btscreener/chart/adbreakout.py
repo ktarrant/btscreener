@@ -79,8 +79,8 @@ class ADBreakout(bt.Indicator):
 
         was_below_resistance = self.data0.close[-1] < self.lines.resistance[-1]
         was_above_support = self.data0.close[-1] > self.lines.support[-1]
-        is_above_resistance = self.data0.close[0] > self.lines.resistance[0]
-        is_below_support = self.data0.close[0] < self.lines.support[0]
+        is_above_resistance = self.data0.close[0] > self.lines.resistance[-1]
+        is_below_support = self.data0.close[0] < self.lines.support[-1]
         was_in_zone = was_below_resistance and was_above_support
         is_long = is_above_resistance and was_in_zone
         is_short = is_below_support and was_in_zone

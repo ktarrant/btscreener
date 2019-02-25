@@ -4,8 +4,9 @@ from .fixtures import *
 
 from btscreener.chart.strategies.stadtd import BreakoutStrategy
 
-def test_breakout(cerebro):
-    cerebro.addstrategy(BreakoutStrategy)
+@pytest.mark.parametrize("max_entry_td", [-1, 0, 4])
+def test_breakout(cerebro, max_entry_td):
+    cerebro.addstrategy(BreakoutStrategy, max_entry_td=max_entry_td)
 
     # Run over everything
     result = cerebro.run()
